@@ -20,6 +20,8 @@ class DefaultConfig(object):
 		"num_layers":2,
 		"rnn":"lstm",
 		"act_func":"sigmoid"
+		"alpha":1.,
+		"beta":1.
 	}
 
 	# dataset path ...

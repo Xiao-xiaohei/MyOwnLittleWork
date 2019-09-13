@@ -48,7 +48,9 @@ class RSHNet(nn.Module):
 				x [B, T, num_bins] concate with M [B, T, num_bins]
 				C scalar
 			output:
-				M_ [C + 1, B, T, num_bins] as a list and flags z [z_1, ..., z_C]
+				M_ [C, B, T, num_bins]
+				res_M [B, T, num_bins]
+				flags z [B, C]
 		'''
 		if x.dim() != 3:
 			x = t.unsqueeze(x, 0)
@@ -63,11 +65,10 @@ class RSHNet(nn.Module):
 			y, _ = self.rnn(y)	# y: [B, T, hidden_size * 2]
 			m = self.mask(y) # m: [B, T, num_bins]
 			m = self.act_func(m)
-			Ms.append(m)
+			Ms.append(m.unsqueeze(0))
 			M -= m
 			z = self.flag(y)
 			z = t.mean(t.sigmoid(z).squeeze(2), 1)
-			zs.append(z)
+			zs.append(z.unsqueeze(0))
 
-		Ms.append(M)
-		return Ms, zs
+		return t.cat(Ms, dim=0), M, t.cat(zs, dim=0).permute(1, 0)
