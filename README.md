@@ -1,7 +1,5 @@
 # My Own Little Work
-Now just work following papers.
-
-Now just two works, ideally.
+Now just work following papers and two works, ideally.
 
 The first one is reconstructed from Conv-TasNet of [funcwj's work](https://github.com/funcwj/conv-tasnet).[1]  
 The second is about another, look more in below's paper.[2]
