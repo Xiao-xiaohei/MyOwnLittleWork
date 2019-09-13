@@ -48,7 +48,7 @@ class RSHNet(nn.Module):
 				x [B, T, num_bins] concate with M [B, T, num_bins]
 				C scalar
 			output:
-				M_ [C + 1, B, T, num_bins] and flags z [z_1, ..., z_C]
+				M_ [C + 1, B, T, num_bins] as a list and flags z [z_1, ..., z_C]
 		'''
 		if x.dim() != 3:
 			x = t.unsqueeze(x, 0)
