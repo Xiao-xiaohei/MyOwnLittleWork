@@ -1,4 +1,4 @@
-from utils import foo
+from utils import util
 from models import RSHNet
 
 import torch as t
