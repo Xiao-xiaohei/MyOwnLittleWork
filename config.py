@@ -27,8 +27,6 @@ class DefaultConfig(object):
 	# dataset path ...
 	train_identification_data_root = '../processed_data/train_identification'  # 训练集存放路径
 	test_identification_data_root = '../processed_data/test_identification'  # 测试集存放路径
-	train_verification_data_root = '../processed_data/train_verification'
-	test_verification_data_root = '../processed_data/test_verification'
 
 	batch_size = 32  # batch size
 	use_gpu = True	# user GPU or not
