@@ -42,16 +42,20 @@ class RSHNet(nn.Module):
 
 		self.flag = nn.Linear(hidden_size * 2 if bidirectional else hidden_size, 1)
 
-	def forward(self, x, C):
+	def forward(self, x, C, greedy=False, label_M=None):
 		'''
 			input:
-				x [B, T, num_bins] concate with M [B, T, num_bins]
-				C scalar
+				x: [B, T, num_bins] concate with M [B, T, num_bins]
+				C: scalar
+				greedy: two methods to compute loss-pair
 			output:
-				M_ [C, B, T, num_bins]
-				res_M [B, T, num_bins]
-				flags z [B, C]
+				M_: [C, B, T, num_bins]
+				res_M: [B, T, num_bins]
+				flags: z [B, C]
 		'''
+		if greedy and label_M == None:
+			raise ValueError("Lost label_M for loss computation!")
+
 		if x.dim() != 3:
 			x = t.unsqueeze(x, 0)
 
