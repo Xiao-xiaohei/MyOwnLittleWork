@@ -5,6 +5,7 @@ import os
 import numpy as np
 from tqdm import tqdm
 from scipy.io import wavfile
+from process import *
 
 bug = True
 
@@ -191,3 +192,33 @@ def SegmentAxis(a, length, overlap=0, axis=None, end='cut', endvalue=0):
 		# Shape doesn't change but strides does
 		newstrides = a.strides[:axis] + ((length - overlap) * s, s) + a.strides[axis + 1:]
 		return np.ndarray.__new__(np.ndarray, strides=newstrides, shape=newshape, buffer=a, dtype=a.dtype)
+
+def CreateLabel(wav_path, sample_rate, window_size, window_shift):
+	'''
+	wavpath is the wavs of s1, s2, ..., sC and s_mix
+	'''
+	tmp_wav_dirs = os.listdir(wav_path)
+	C = len(tmp_wav_dirs) - 1
+	mix_wav = wav_path + '/mix.wav'	# not sure !
+	mix_wav = read_wav(mix_wav)
+	tmp_wav_dirs.remove(mix_wav)
+	wavs = [read_wav(wav_name) for wav_name in tmp_wav_dirs]
+
+	###########################################
+	# Here maybe need check dim whether [N, C]
+	###########################################
+
+	mix_stft = stft(mix_wav)
+	stfts = [stft(wav_signal) for wav_signal in wavs]
+
+	###########################################
+	# Mask Computation eg IBM, IRM, PSM(mainly focused)...
+	###########################################
+
+	label = ComputeMasks(mix_stft, stfts)
+
+	###########################################
+	# Save features...
+	###########################################
+
+	return
