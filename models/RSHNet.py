@@ -48,6 +48,7 @@ class RSHNet(nn.Module):
 				x: [B, T, num_bins] concate with M [B, T, num_bins]
 				C: scalar
 				greedy: two methods to compute loss-pair
+				label_M: [C, B, T, num_bins]
 			output:
 				M_: [C, B, T, num_bins]
 				res_M: [B, T, num_bins]
@@ -61,7 +62,7 @@ class RSHNet(nn.Module):
 
 		Ms = []
 		zs = []
-
+		res = np.ones([B, C])
 		M = t.ones(x.shape)
 
 		for i in range(C):
@@ -69,6 +70,13 @@ class RSHNet(nn.Module):
 			y, _ = self.rnn(y)	# y: [B, T, hidden_size * 2]
 			m = self.mask(y) # m: [B, T, num_bins]
 			m = self.act_func(m)
+			if greedy:
+				tmp_M = [m.unsqueeze(0) for _ in range(C)]
+				tmp_loss = t.norm(tmp_M - label_M, p='fro', dim=[-2, -1])
+				# weight it
+				# get indices
+				# now sleep....
+
 			Ms.append(m.unsqueeze(0))
 			M -= m
 			z = self.flag(y)
