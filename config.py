@@ -20,9 +20,11 @@ class DefaultConfig(object):
 		"num_layers":2,
 		"rnn":"lstm",
 		"act_func":"sigmoid"
-		"alpha":1.,
-		"beta":1.
 	}
+	# train args
+	alpha = 1.
+	beta = 1.
+	greedy = False
 
 	# dataset path ...
 	train_identification_data_root = '../processed_data/train_identification'  # 训练集存放路径

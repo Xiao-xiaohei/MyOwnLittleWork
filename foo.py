@@ -55,7 +55,20 @@ def test_net():
 	net = RSHNet()
 	x = t.rand(2, 101, 129)
 	print("{} #param: {:.2f}".format(net.name, util.ComputParameters(net)))
-	m, resm, z = net(x, 3)
+	m, resm, z, _ = net(x, 3)
+	print(m.shape, resm.shape, z.shape)
+
+	C = 3
+	ref_m = t.rand([3, 2, 101, 129])
+	ref_z = t.rand([2, 3])
+	label = [ref_m, ref_z]
+	output = [m, resm, z]
+	Loss = loss(output, label)
+	print(Loss)
+
+	x = t.rand(4, 2, 101, 129)	# [C + 1, B, T, num_bins]
+	net.greedy = True
+	m, resm, z, _ = net(x, 3)
 	print(m.shape, resm.shape, z.shape)
 
 	C = 3
@@ -75,4 +88,4 @@ def test_mixwav():
 	util.CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=44100)
 
 if __name__ == '__main__':
-	test_mixwav()
+	test_net()

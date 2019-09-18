@@ -14,6 +14,7 @@ class RSHNetTrainer(Trainer):
 		super(RSHNetTrainer, self).__init__(opt)
 		self.alpha = opt.alpha
 		self.beta = opt.beta
+		self.greedy = opt.greedy
 
 	def loss(self, output, label):
 		'''
