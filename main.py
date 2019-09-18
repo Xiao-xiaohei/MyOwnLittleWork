@@ -21,8 +21,9 @@ class RSHNetTrainer(Trainer):
 			output:
 				M [C, B, T, num_bins]
 				res_M [B, T, num_bins]
-				and
 				z [B, C]
+				and
+				loss [C, B] if greedy
 			label:
 				M [C, B, T, num_bins]
 				z [B, C]
@@ -38,9 +39,12 @@ class RSHNetTrainer(Trainer):
 		L_resMask = t.norm(output[1], 2)
 		M = output[0]
 		C = M.shape[0]
-		# pit_mat with shape [C!, B]
-		pit_mat = t.stack([self.mse_loss(M, label[0], p) for p in permutations(range(C))])
-		L_mask, min_per = t.min(pit_mat, dim=0)
+		if self.greedy:
+			L_mask = t.sum(output[3], dim=0)
+		else:
+			# pit_mat with shape [C!, B]
+			pit_mat = t.stack([self.mse_loss(M, label[0], p) for p in permutations(range(C))])
+			L_mask, min_per = t.min(pit_mat, dim=0)
 		return L_mask + self.alpha * L_flag + self.beta * L_resMask
 
 	def mse_loss(self, obtain_m, ref_m, permutation):
