@@ -51,7 +51,7 @@ def mse(ob_m, ref_m):
 	'''
 	return t.norm(ob_m - ref_m, p='fro', dim=[-2, -1])
 
-if __name__ == '__main__':
+def test_net():
 	net = RSHNet()
 	x = t.rand(2, 101, 129)
 	print("{} #param: {:.2f}".format(net.name, util.ComputParameters(net)))
@@ -65,3 +65,14 @@ if __name__ == '__main__':
 	output = [m, resm, z]
 	Loss = loss(output, label)
 	print(Loss)
+
+def test_mixwav():
+	path = '../test_wav'
+	save_path = '..test_wav/saves'
+	num_speakers = [2]
+	snr_range = [-5., 5.]
+	nums = [1, 1, 1]
+	util.CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=44100)
+
+if __name__ == '__main__':
+	test_mixwav()

@@ -3,7 +3,10 @@ import random
 import glob
 import os
 import numpy as np
+from tqdm import tqdm
 from scipy.io import wavfile
+
+bug = True
 
 def ComputParameters(net, Mb=True):
 	"""
@@ -33,7 +36,7 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 	data_types = ['tr', 'cv', 'ts']
 
 	def GetSNR(snr_range):
-		return random.uniform(snr_range)
+		return random.uniform(*snr_range)
 
 	def NormalizeSignal(signal):
 		signal = signal / (2 ** 15 - 1)
@@ -42,7 +45,7 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 
 	for num_spks in num_speakers:
 		file_info = []
-		for ii, data_type in data_types:
+		for ii, data_type in enumerate(data_types):
 			wav_pairs = []
 			tmp_num = 0
 			type_num = nums[ii]
@@ -66,14 +69,14 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 					wav_name = os.path.splitext(os.path.split(wav)[1])[0]
 					save_name += (wav_name + "_" + str(tmp_snr) + "_")
 					txt_info += (wav + " " + str(tmp_snr) + " ")
-					sample, signal = wavfile.reaf(wav)
+					sample, signal = wavfile.read(wav)
 					assert sample == spl
 
 					signal = NormalizeSignal(signal)
 					if len(signal) < min_length:
 						min_length = len(signal)
 
-					sigs.append(signal)
+					sigs.append(signal[:, 0])
 
 				snrs[0] = 0.0
 				save_name = save_name[:-1] + ".wav"
@@ -81,7 +84,7 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 
 				merge_wavs = np.zeros([num_spks + 1, min_length])
 				for i in range(num_spks):
-					random_b = random.randint(0, len(sigs[i] - min_length))
+					random_b = random.randint(0, len(sigs[i]) - min_length)
 					merge_wavs[i, :] = 10 ** (snrs[i] / 20) * sigs[i][random_b:random_b + min_length]
 				merge_wavs[num_spks, :] = np.sum(merge_wavs[:-1], axis=0)
 
@@ -97,21 +100,24 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 
 				save_dir = ""
 				for i in range(num_spks):
-					save_dir = save_path + str(num_spks) + "speakers_0dB/wav8k/min/" + data_type + "/s" + str(i + 1) + "/"	# not sure...
+					save_dir = save_path + str(num_spks) + "_" + data_type + "/s" + str(i + 1) + "/"	# not sure...
 					try:
-						os.mkdir(save_dir)
+						os.makedirs(save_dir)
 					except BaseException:
 						pass
 					wavfile.write(save_dir + save_name, spl, merge_wavs[i].astype(np.int16))
 
 				mix_dir = save_dir[:-3] + "mix/"
 				try:
-					os.mkdir(mix_dir)
+					os.makedirs(mix_dir)
 				except BaseException:
 					pass
 				wavfile.write(mix_dir + wav_name, spl, merge_wavs[num_spks].astype(np.int16))
 
-		
+		try:
+			os.makedirs(path + str(num_spks) + "speakers_" + "0dB/")
+		except BaseException:
+			pass
 		with open(path + str(num_spks) + "speakers_" + "0dB/" + str(num_spks) + "speakers_" + "8k_0dB.txt", "w", encoding="utf-8") as f:
 			for row in file_info:
 				f.write(row)
