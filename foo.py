@@ -92,14 +92,15 @@ def test_mixwav():
 def test_stft():
 	path = '/Users/yuanzeyu/Desktop/mix_LSHNY_-5db.wav'
 	sig = process.read_wav(path)
+	sig = np.asarray([sig, sig])
 	print(sig.shape)
-	stft_sig = process.stft(sig)
-	print(stft_sig.shape)
-	stft_sig_ = signal.stft(sig, nperseg=1024, noverlap=768, nfft=1024, window='blackman', boundary='constant')
+	#stft_sig = process.stft(sig)
+	#print(stft_sig.shape)
+	stft_sig_ = signal.stft(sig, nperseg=1024, noverlap=768, nfft=1024, window='blackman')
 	print(stft_sig_[0].shape, stft_sig_[1].shape, stft_sig_[2].shape)
-	print('##############')
-	stft_sig = stft_sig[:-1, :]
-	print(np.sum(stft_sig.T - stft_sig_[2][0]))
+	#print('##############')
+	#stft_sig = stft_sig[:-1, :]
+	#print(np.sum(stft_sig.T - stft_sig_[2][0]))
 
 if __name__ == '__main__':
-	test_mixwav()
+	test_stft()

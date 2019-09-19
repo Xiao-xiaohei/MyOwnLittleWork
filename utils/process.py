@@ -115,6 +115,7 @@ def read_wav(fname, normalize=True, return_rate=False):
 		samps = samps / MAX_INT16
 	if return_rate:
 		return samp_rate, samps
+
 	return samps
 
 def stft(signal, fft_size=1024, fft_shift=256, window=signal.blackman, padding=True, window_length=None):
@@ -149,3 +150,12 @@ def stft(signal, fft_size=1024, fft_shift=256, window=signal.blackman, padding=T
 
 	return rfft(np.einsum(mapping, signal_seg, window),
 				axis=0 + 1)
+
+def compute_vad_mask(spec, threshold_db, apply_exp=True):
+	if apply_exp:
+		spec = np.exp(spec)
+	spec_db = 20 * np.log10(spec)
+	max_db = np.max(spec_db)
+	threshold = 10 ** ((max_db - threshold_db) / 20)
+	mask = np.array(spec > threshold, dtype=np.float32)
+	return mask

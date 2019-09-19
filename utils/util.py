@@ -124,7 +124,30 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 				f.write(row)
 				f.write("\n")
 
-def CreateLabel(wav_path, sample_rate, window_size, window_shift):
+def ComputeMasks(mix, cleans, mask_type='PSM'):
+	'''
+	mix: [frames, fft//2 + 1]	Complex Domain
+	cleans: [s1_spec, s2_spec, ...]
+	mask_type:	['PSM', 'IBM', 'IRM'...]
+	'''
+	if mask_type not in ['PSM', 'IBM', 'IRM']:
+		raise ValueError("Unsupported mask type!")
+
+	C = len(cleans)
+	
+	mix_abs = np.abs(mix)
+	mix_angle = np.angle(mix)
+
+	clean_abs = [np.abs(stft) for stft in cleans]
+	clean_angle = [np.angle(stft) for stft in cleans]
+
+	inputs = np.concatnate((mix_abs, mix_angle), axis=1)
+	if mask_type == 'PSM':
+		cross_masks = [s_abs * np.cos(mix_angle - s_angle) for s_abs, s_angle in zip(clean_abs, clean_angle)]
+
+	return inputs, np.stack(cross_masks, axis=0)	
+
+def CreateLabel(wav_path, sample_rate, window_size, window_shift, spl=8000):
 	'''
 	wavpath is the wavs of s1, s2, ..., sC and s_mix
 	'''
@@ -135,20 +158,26 @@ def CreateLabel(wav_path, sample_rate, window_size, window_shift):
 	mix_wav = read_wav(mix_wav)
 	wavs = [read_wav(wav_name) for wav_name in tmp_wav_dirs]
 
-	###########################################
-	# Here maybe need check dim whether [N, C]
-	###########################################
+	############################################
+	# Here maybe need check dim whether [C, N] #
+	#         have done it in read_wav         #
+	############################################
 
 	# That's pchao's method...
 	# mix_stft = stft(mix_wav)
 	# stfts = [stft(wav_signal) for wav_signal in wavs]
 
+	def _stft(sig, fs=spl, nperseg=window_size, noverlap=window_size-window_shift, nfft=window_size, window='blackman'):
+		_, _, ans = signal.stft(sig, fs=fs, nperseg=nperseg, noverlap=noverlap, nfft=nfft, window=window)
+		return np.transpose(ans)
+
 	# Here use scipy.signal.stft
-	mix_stft = signal.stft(mix_wav, nperseg=window_size, noverlap=window_size-windowshift, nfft=window_size, window='blackman', boundary='constant')
-	stfts = [signal.stft(wav_signal, nperseg=window_size, noverlap=window_size-windowshift, nfft=window_size, window='blackman', boundary='constant') for wav_signal in wavs]
+	mix_stft = _stft(mix_wav)
+	stfts = [_stft(wav_signal) for wav_signal in wavs]
 
 	###########################################
 	# Mask Computation eg IBM, IRM, PSM(mainly focused)...
+	# go for dinner!
 	###########################################
 
 	label = ComputeMasks(mix_stft, stfts)
