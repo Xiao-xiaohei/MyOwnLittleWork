@@ -3,10 +3,79 @@ import numpy as np
 import scipy.io.wavfile as wf
 
 from scipy import signal
-from util import SegmentAxis
 from numpy.fft import rfft, irfft
 
 MAX_INT16 = np.iinfo(np.int16).max
+
+def SegmentAxis(a, length, overlap=0, axis=None, end='cut', endvalue=0):
+	'''
+	Organize overlapped(if it is) frames
+	come from https://github.com/pchao6/LSTM_PIT_Speech_Separation/blob/master/utils.py
+	'''
+	if axis is None:
+		a = np.ravel(a)
+		axis = 0
+
+	l = a.shape[axis]
+
+	if overlap >= length:
+		raise ValueError("Overlap mustn't longer than frame size!")
+	if overlap < 0 or length < 0:
+		raise ValueError("Overlap and length must be positive!")
+
+	if l < length or (l - length) % (length - overlap):
+		if l > length:
+			roundup = length + (1 + (l - length) // (length - overlap)) * (
+					length - overlap)
+			rounddown = length + ((l - length) // (length - overlap)) * (
+					length - overlap)
+		else:
+			roundup = length
+			rounddown = 0
+		assert rounddown < l < roundup
+		assert roundup == rounddown + (length - overlap) or (
+				roundup == length and rounddown == 0)
+		a = a.swapaxes(-1, axis)
+
+		if end == 'cut':
+			a = a[..., :rounddown]
+		elif end in ['pad', 'wrap']:  # copying will be necessary
+			s = list(a.shape)
+			s[-1] = roundup
+			b = np.empty(s, dtype=a.dtype)
+			b[..., :l] = a
+			if end == 'pad':
+				b[..., l:] = endvalue
+			elif end == 'wrap':
+				b[..., l:] = a[..., :roundup - l]
+			a = b
+
+		a = a.swapaxes(-1, axis)
+
+	l = a.shape[axis]
+	if l == 0:
+		raise ValueError("Not enough data points to segment array in 'cut' mode; try 'pad' or 'wrap'.")
+	assert l >= length
+	assert (l - length) % (length - overlap) == 0
+	n = 1 + (l - length) // (length - overlap)
+	s = a.strides[axis]
+	newshape = a.shape[:axis] + (n, length) + a.shape[axis + 1:]
+	newstrides = a.strides[:axis] + ((length - overlap) * s, s) + a.strides[axis + 1:]
+
+	if not a.flags.contiguous:
+		a = a.copy()
+		newstrides = a.strides[:axis] + ((length - overlap) * s, s) + a.strides[axis + 1:]
+		return np.ndarray.__new__(np.ndarray, strides=newstrides, shape=newshape, buffer=a, dtype=a.dtype)
+
+	try:
+		return np.ndarray.__new__(np.ndarray, strides=newstrides, shape=newshape, buffer=a, dtype=a.dtype)
+	except BaseException:
+		warnings.warn("Problem with ndarray creation forces copy.")
+		a = a.copy()
+		# Shape doesn't change but strides does
+		newstrides = a.strides[:axis] + ((length - overlap) * s, s) + a.strides[axis + 1:]
+		return np.ndarray.__new__(np.ndarray, strides=newstrides, shape=newshape, buffer=a, dtype=a.dtype)
+
 
 def write_wav(fname, samps, fs=16000, normalize=True):
 	'''
@@ -75,8 +144,8 @@ def stft(signal, fft_size=1024, fft_shift=256, window=signal.blackman, padding=T
 	signal_seg = SegmentAxis(signal, fft_size, fft_size - fft_shift, axis=0)
 	
 	letters = string.ascii_lowercase
-	mapping = letters[:signal_seg.ndim] + ',' + letters[time_dim + 1] \
-			  + '->' + letters[:time_signal_seg.ndim]
+	mapping = letters[:signal_seg.ndim] + ',' + letters[0 + 1] \
+			  + '->' + letters[:signal_seg.ndim]
 
 	return rfft(np.einsum(mapping, signal_seg, window),
-				axis=time_dim + 1)
+				axis=0 + 1)

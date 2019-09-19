@@ -3,9 +3,9 @@ import random
 import glob
 import os
 import numpy as np
+import scipy.signal as signal
 from tqdm import tqdm
 from scipy.io import wavfile
-from process import *
 
 bug = True
 
@@ -113,85 +113,16 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 					os.makedirs(mix_dir)
 				except BaseException:
 					pass
-				wavfile.write(mix_dir + wav_name, spl, merge_wavs[num_spks].astype(np.int16))
+				wavfile.write(mix_dir + save_name, spl, merge_wavs[num_spks].astype(np.int16))
 
 		try:
-			os.makedirs(path + str(num_spks) + "speakers_" + "0dB/")
+			os.makedirs(path + "_" + str(num_spks) + "speakers/")
 		except BaseException:
 			pass
-		with open(path + str(num_spks) + "speakers_" + "0dB/" + str(num_spks) + "speakers_" + "8k_0dB.txt", "w", encoding="utf-8") as f:
+		with open(path + "_" + str(num_spks) + "speakers/" + str(num_spks) + "speakers" + ".txt", "w", encoding="utf-8") as f:
 			for row in file_info:
 				f.write(row)
 				f.write("\n")
-
-def SegmentAxis(a, length, overlap=0, axis=None, end='cut', endvalue=0):
-	'''
-	Organize overlapped(if it is) frames
-	come from https://github.com/pchao6/LSTM_PIT_Speech_Separation/blob/master/utils.py
-	'''
-	if axis is None:
-		a = np.ravel(a)
-		axis = 0
-
-	l = a.shape[axis]
-
-	if overlap >= length:
-		raise ValueError("Overlap mustn't longer than frame size!")
-	if overlap < 0 or length < 0:
-		raise ValueError("Overlap and length must be positive!")
-
-	if l < length or (l - length) % (length - overlap):
-		if l > length:
-			roundup = length + (1 + (l - length) // (length - overlap)) * (
-					length - overlap)
-			rounddown = length + ((l - length) // (length - overlap)) * (
-					length - overlap)
-		else:
-			roundup = length
-			rounddown = 0
-		assert rounddown < l < roundup
-		assert roundup == rounddown + (length - overlap) or (
-				roundup == length and rounddown == 0)
-		a = a.swapaxes(-1, axis)
-
-		if end == 'cut':
-			a = a[..., :rounddown]
-		elif end in ['pad', 'wrap']:  # copying will be necessary
-			s = list(a.shape)
-			s[-1] = roundup
-			b = np.empty(s, dtype=a.dtype)
-			b[..., :l] = a
-			if end == 'pad':
-				b[..., l:] = endvalue
-			elif end == 'wrap':
-				b[..., l:] = a[..., :roundup - l]
-			a = b
-
-		a = a.swapaxes(-1, axis)
-
-	l = a.shape[axis]
-	if l == 0:
-		raise ValueError("Not enough data points to segment array in 'cut' mode; try 'pad' or 'wrap'.")
-	assert l >= length
-	assert (l - length) % (length - overlap) == 0
-	n == 1 + (l - length) // (length - overlap)
-	s = a.strides[axis]
-	newshape = a.shape[:axis] + (n, length) + a.shape[axis + 1:]
-	newstrides = a.strides[:axis] + ((length - overlap) * s, s) + a.strides[axis + 1:]
-
-	if not a.flags.contiguous:
-		a = a.copy()
-		newstrides = a.strides[:axis] + ((length - overlap) * s, s) + a.strides[axis + 1:]
-		return np.ndarray.__new__(np.ndarray, strides=newstrides, shape=newshape, buffer=a, dtype=a.dtype)
-
-	try:
-		return np.ndarray.__new__(np.ndarray, strides=newstrides, shape=newshape, buffer=a, dtype=a.dtype)
-	except BaseException:
-		warnings.warn("Problem with ndarray creation forces copy.")
-		a = a.copy()
-		# Shape doesn't change but strides does
-		newstrides = a.strides[:axis] + ((length - overlap) * s, s) + a.strides[axis + 1:]
-		return np.ndarray.__new__(np.ndarray, strides=newstrides, shape=newshape, buffer=a, dtype=a.dtype)
 
 def CreateLabel(wav_path, sample_rate, window_size, window_shift):
 	'''
@@ -200,16 +131,21 @@ def CreateLabel(wav_path, sample_rate, window_size, window_shift):
 	tmp_wav_dirs = os.listdir(wav_path)
 	C = len(tmp_wav_dirs) - 1
 	mix_wav = wav_path + '/mix.wav'	# not sure !
-	mix_wav = read_wav(mix_wav)
 	tmp_wav_dirs.remove(mix_wav)
+	mix_wav = read_wav(mix_wav)
 	wavs = [read_wav(wav_name) for wav_name in tmp_wav_dirs]
 
 	###########################################
 	# Here maybe need check dim whether [N, C]
 	###########################################
 
-	mix_stft = stft(mix_wav)
-	stfts = [stft(wav_signal) for wav_signal in wavs]
+	# That's pchao's method...
+	# mix_stft = stft(mix_wav)
+	# stfts = [stft(wav_signal) for wav_signal in wavs]
+
+	# Here use scipy.signal.stft
+	mix_stft = signal.stft(mix_wav, nperseg=window_size, noverlap=window_size-windowshift, nfft=window_size, window='blackman', boundary='constant')
+	stfts = [signal.stft(wav_signal, nperseg=window_size, noverlap=window_size-windowshift, nfft=window_size, window='blackman', boundary='constant') for wav_signal in wavs]
 
 	###########################################
 	# Mask Computation eg IBM, IRM, PSM(mainly focused)...

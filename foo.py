@@ -1,8 +1,10 @@
-from utils import util
-from models import RSHNet
-
 import torch as t
 import torch.nn as nn
+import scipy.signal as signal
+import numpy as np
+
+from utils import util, process
+from models import RSHNet
 from itertools import permutations
 
 def loss(output, label):
@@ -80,12 +82,24 @@ def test_net():
 	print(Loss)
 
 def test_mixwav():
-	path = '../test_wav'
-	save_path = '..test_wav/saves'
+	path = '/Users/yuanzeyu/Desktop/test_wav'
+	save_path = '/Users/yuanzeyu/Desktop/test_wav/saves'
 	num_speakers = [2]
 	snr_range = [-5., 5.]
 	nums = [1, 1, 1]
 	util.CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=44100)
 
+def test_stft():
+	path = '/Users/yuanzeyu/Desktop/mix_LSHNY_-5db.wav'
+	sig = process.read_wav(path)
+	print(sig.shape)
+	stft_sig = process.stft(sig)
+	print(stft_sig.shape)
+	stft_sig_ = signal.stft(sig, nperseg=1024, noverlap=768, nfft=1024, window='blackman', boundary='constant')
+	print(stft_sig_[0].shape, stft_sig_[1].shape, stft_sig_[2].shape)
+	print('##############')
+	stft_sig = stft_sig[:-1, :]
+	print(np.sum(stft_sig.T - stft_sig_[2][0]))
+
 if __name__ == '__main__':
-	test_net()
+	test_mixwav()
