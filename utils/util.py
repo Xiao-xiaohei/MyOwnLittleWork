@@ -145,10 +145,12 @@ def ComputeMasks(mix, cleans, mask_type='PSM'):
 
 	return inputs, np.stack(cross_masks, axis=0)	
 
-def CreateLabel(wav_path, save_path, sample_rate, window_size, window_shift, spl=8000):
+def CreateLabelOnce(wav_path, save_path, sample_rate, window_size, window_shift, spl=8000):
 	'''
-	wavpath is the wavs of s1, s2, ..., sC and s_mix or other info to know which wavs are in the same group
+	The 'wavpath' is the wavs of s1, s2, ..., sC and s_mix or other info to know which wavs are in the same group
+	Here is the latter form from [info].txt created before.
 	'''
+	
 	############################################
 	#       This part to parse 'wav_path'      #
 	############################################
@@ -189,3 +191,27 @@ def CreateLabel(wav_path, save_path, sample_rate, window_size, window_shift, spl
 	np.save(save_path + '/' + new_name, res)
 
 	return
+
+def CreateLabelsAll(info_file, speaker_nums, data_path, save_path, sample_rate, window_size, window_shift, spl=8000):
+	'''
+	preprocess all data, which includes num_speakers[2, 3, 4...] & ['tr', 'ts', 'cv']
+	I make the hypothesis that the space to save data is enough...
+	'''
+
+	data_types = ['tr', 'cv', 'ts']
+
+	###########################################
+	#             path problem                #
+	#       below is not the final code       #
+	###########################################
+
+	for data_type in data_types:
+		for spk_num in speaker_nums:
+			new_file_name = info_file + data_type + '_' + str(spk_num) + '.txt'
+			new_save_path = save_path + data_type + '_' + str(spk_num)
+
+			with open(new_file_name, 'r') as f:
+				info_lines = f.readlines()
+
+				for line in info_lines:
+					CreateLabelOnce(blablablabla)	# ....dbq

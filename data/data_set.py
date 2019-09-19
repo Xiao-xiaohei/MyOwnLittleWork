@@ -1,19 +1,19 @@
 #coding=utf-8
 
-import torch as t
 import os
 import random
 import pickle
 import numpy as np
+import torch as t
 from utils.process import compute_vad_mask
 
-# data is saved as ... '../total/tr/A_B_xx/[s1/*.npy, s2/*.npy...]'
+# data is saved as ... '../total/tr/[mix1.npy, mix2.npy...]'
 
 class MixSpeakers(object):
 	def __init__(self, path, shuffle=True, vad_threshold=40):
 		'''
 		path is '.../total/[tr, cv, ts]'
-		now just 2 speakers...orz, I'm too vegetable...
+		I'm too vegetable...
 		'''
 		self.mixes = os.listdir(path)
 		self.vad_threshold = vad_threshold
@@ -38,27 +38,24 @@ class MixSpeakers(object):
 				x_res.append(tmp[0])
 				vad_res.append(tmp[1])
 				label_res.append(tmp[2])
-				return (x_res, vad_res, label_res)
+				return (x_res, vad_res, label_res)	#  which are not align
 		else:
 			mix = self.mixes[index]
 			try:
-				#############################
 				#     details of path       #
-				#############################
-				x = np.load(mix + '/mix.npy')
-				vad_x = compute_vad_mask(x, self.vad_threshold)
+				x = np.load(mix)
+				vad_x = compute_vad_mask(x[0], self.vad_threshold)
 
 			except:
 				new_index = random.randint(0, len(self) - 1)
 
-			#############################
 			#     details of label      #
-			#############################
-			label = None
+			label = x[1:]
 
-			#############################
 			#     trans to t.Tensor     #
-			#############################
+			mix_x = t.from_numpy(x[0])
+			vad_x = t.from_numpy(vad_res)
+			label = t.from_numpy(label)
 
 			return (x, vad_x, label)
 
