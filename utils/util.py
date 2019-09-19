@@ -89,10 +89,8 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 					merge_wavs[i, :] = 10 ** (snrs[i] / 20) * sigs[i][random_b:random_b + min_length]
 				merge_wavs[num_spks, :] = np.sum(merge_wavs[:-1], axis=0)
 
-				################################
 				#     go for some fooooood     #
 				#          2019.09.14          #
-				################################
 
 				max_amp = np.max(merge_wavs)
 				merge_wavs /= max_amp
@@ -147,21 +145,24 @@ def ComputeMasks(mix, cleans, mask_type='PSM'):
 
 	return inputs, np.stack(cross_masks, axis=0)	
 
-def CreateLabel(wav_path, sample_rate, window_size, window_shift, spl=8000):
+def CreateLabel(wav_path, save_path, sample_rate, window_size, window_shift, spl=8000):
 	'''
-	wavpath is the wavs of s1, s2, ..., sC and s_mix
+	wavpath is the wavs of s1, s2, ..., sC and s_mix or other info to know which wavs are in the same group
 	'''
+	############################################
+	#       This part to parse 'wav_path'      #
+	############################################
+
 	tmp_wav_dirs = os.listdir(wav_path)
 	C = len(tmp_wav_dirs) - 1
 	mix_wav = wav_path + '/mix.wav'	# not sure !
 	tmp_wav_dirs.remove(mix_wav)
 	mix_wav = read_wav(mix_wav)
 	wavs = [read_wav(wav_name) for wav_name in tmp_wav_dirs]
+	new_name = None
 
-	############################################
 	# Here maybe need check dim whether [C, N] #
 	#         have done it in read_wav         #
-	############################################
 
 	# That's pchao's method...
 	# mix_stft = stft(mix_wav)
@@ -175,15 +176,16 @@ def CreateLabel(wav_path, sample_rate, window_size, window_shift, spl=8000):
 	mix_stft = _stft(mix_wav)
 	stfts = [_stft(wav_signal) for wav_signal in wavs]
 
-	###########################################
 	# Mask Computation eg IBM, IRM, PSM(mainly focused)...
-	# go for dinner!
+	# go for dinner! --09.19 16:25
+
+	inputs, labels = ComputeMasks(mix_stft, stfts)
+
+	###########################################
+	#  Save features...names' parse problem!  #
 	###########################################
 
-	label = ComputeMasks(mix_stft, stfts)
-
-	###########################################
-	# Save features...
-	###########################################
+	res = np.stack([inputs, labels], axis=0)
+	np.save(save_path + '/' + new_name, res)
 
 	return
