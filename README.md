@@ -1,8 +1,10 @@
 # My Own Little Work
 Now just work following papers and two works, ideally.
 
-The first one is reconstructed from Conv-TasNet of [funcwj's work](https://github.com/funcwj/conv-tasnet).[1]  
+The first one is reconstructed from Conv-TasNet of [funcwj's work](https://github.com/funcwj/conv-tasnet), and the paper is [1].  
 The second is about another, look more in below's paper.[2]
+
+Some data process code is inspired by [pchao6's work](https://github.com/pchao6/LSTM_PIT_Speech_Separation).
 
 # Reference
 [1]Luo Y, Mesgarani N. TasNet: Surpassing Ideal Time-Frequency Masking for Speech Separation[J]. arXiv preprint arXiv:1809.07454, 2018.  
