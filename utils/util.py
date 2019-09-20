@@ -185,6 +185,7 @@ def CreateLabelOnce(wav_path, save_path, sample_rate, window_size, window_shift,
 
 	###########################################
 	#  Save features...names' parse problem!  #
+	#    or just process wav in dataloader?   #
 	###########################################
 
 	res = np.stack([inputs, labels], axis=0)
