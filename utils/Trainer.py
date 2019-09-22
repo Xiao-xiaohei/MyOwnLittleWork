@@ -35,7 +35,7 @@ class Trainer(object):
 			_kwargs["momentum"] = self.opt.momentum
 		self.optimizer = supported_optimizer[self.opt.optimizer](self.model.parameters(), **_kwargs)
 
-	def loss(self, output, label):
+	def recursive_loss(self, data, target):
 		pass
 
 	def run(self):
@@ -55,8 +55,11 @@ class Trainer(object):
 				target = label.to(self.opt.device)
 
 				self.optimizer.zero_grad()
-				output = self.model(inputs)
-				loss = self.loss(output, target)
+
+				# output = self.model(inputs)
+
+				loss = self.recursive_loss(data, target)
+				
 				loss.backward()
 				self.optimizer.step()
 
