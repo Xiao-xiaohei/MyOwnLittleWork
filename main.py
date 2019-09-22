@@ -16,22 +16,34 @@ class RSHNetTrainer(Trainer):
 		self.beta = opt.beta
 		self.greedy = opt.greedy
 
-	def loss(self, output, label):
+	def recursive_loss(self, data, label):
 		'''
-			output:
-				M [C, B, T, num_bins]
-				res_M [B, T, num_bins]
-				z [B, C]
-				and
-				loss [C, B] if greedy
+			data:
+				mix [B, T, num_bins]
 			label:
 				M [C, B, T, num_bins]
-				z [B, C]
 
 			compute loss using PIT for M ~ M
 			L_{Mask}: MSE?
 			L_{flag}: CrossEntropy? MSE?
 			L_{res_Mask}: Square？ or CrossEntropy that minus is heavily gg!
+		'''
+		C = label.shape[0]
+		B = label.shape[1]
+		stop_flag = t.zeros([B, C])
+		stop_flag[:, -1] = 1
+		loss = []
+		flags = []
+		M = t.ones(data.shape)	# M [B, T, num_bins]
+		for i in range(C):
+			inputs = t.cat([data, M], dim=-1)
+			tmp_m, tmp_c = self.model(inputs)
+			flags.append(tmp_c)
+
+		L_flag = nn.BCELoss()(t.stack(flags, dim=1), stop_flag)
+		L_resMask = t.norm(M, 2)
+		
+
 		'''
 		output_flags = output[2]	# [B, C]
 		L_flag = nn.BCELoss()(output_flags, label[1])
@@ -45,6 +57,7 @@ class RSHNetTrainer(Trainer):
 			# pit_mat with shape [C!, B]
 			pit_mat = t.stack([self.mse_loss(M, label[0], p) for p in permutations(range(C))])
 			L_mask, min_per = t.min(pit_mat, dim=0)
+		'''
 		return L_mask + self.alpha * L_flag + self.beta * L_resMask
 
 	def mse_loss(self, obtain_m, ref_m, permutation):

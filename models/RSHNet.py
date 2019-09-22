@@ -44,6 +44,24 @@ class RSHNet(nn.Module):
 
 		self.flag = nn.Linear(hidden_size * 2 if bidirectional else hidden_size, 1)
 
+	def forward(self, x):
+		'''
+		input:
+			x: [B, T, num_bins x 2]
+		output:
+			Mask: [B, T x num_bins]
+			flag: [B]
+		'''
+		if x.dim != 3:
+			x = t.unsqueeze(x, 0)
+
+		x, _ = self.rnn(x)
+		m = self.mask(x)
+		m = self.act_func(m)
+		z = self.flag(x)
+		z = t.mean(t.sigmoid(z).squeeze(2), 1)
+		return m, z
+
 	def forward(self, x, C):
 		'''
 			input:
