@@ -7,7 +7,7 @@ class Trainer(object):
 	'''
 	An abstract process for train.
 	run()
-	loss()
+	recursive_loss()
 	'''
 	def __init__(self, opt):
 		self.vis = Visualizer(opt.env, port=opt.vis_port) if opt.vis else None

@@ -49,7 +49,7 @@ class RSHNet(nn.Module):
 		input:
 			x: [B, T, num_bins x 2]
 		output:
-			Mask: [B, T x num_bins]
+			Mask: [B, T, num_bins]
 			flag: [B]
 		'''
 		if x.dim != 3:
@@ -62,6 +62,7 @@ class RSHNet(nn.Module):
 		z = t.mean(t.sigmoid(z).squeeze(2), 1)
 		return m, z
 
+	"""
 	def forward(self, x, C):
 		'''
 			input:
@@ -122,3 +123,4 @@ class RSHNet(nn.Module):
 			zs.append(z.unsqueeze(0))
 
 		return t.cat(Ms, dim=0), M, t.cat(zs, dim=0).permute(1, 0), greedy_loss
+	"""
