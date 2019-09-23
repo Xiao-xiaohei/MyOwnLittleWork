@@ -55,6 +55,14 @@ def mse(ob_m, ref_m):
 
 def test_net():
 	net = RSHNet()
+	x = t.rand(10, 100, 258)
+	print("{} #param: {:.2f}".format(net.name, util.ComputParameters(net)))
+	m, z = net(x)
+	print(m.shape, z.shape)
+
+'''
+def test_net():
+	net = RSHNet()
 	x = t.rand(2, 101, 129)
 	print("{} #param: {:.2f}".format(net.name, util.ComputParameters(net)))
 	m, resm, z, _ = net(x, 3)
@@ -80,6 +88,7 @@ def test_net():
 	output = [m, resm, z]
 	Loss = loss(output, label)
 	print(Loss)
+'''
 
 def test_mixwav():
 	path = '/Users/yuanzeyu/Desktop/test_wav'
@@ -103,4 +112,4 @@ def test_stft():
 	#print(np.sum(stft_sig.T - stft_sig_[2][0]))
 
 if __name__ == '__main__':
-	test_stft()
+	test_net()

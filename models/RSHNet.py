@@ -52,9 +52,10 @@ class RSHNet(nn.Module):
 			Mask: [B, T, num_bins]
 			flag: [B]
 		'''
-		if x.dim != 3:
+		if x.dim() != 3:
 			x = t.unsqueeze(x, 0)
 
+		print(x.shape)
 		x, _ = self.rnn(x)
 		m = self.mask(x)
 		m = self.act_func(m)
