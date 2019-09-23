@@ -6,6 +6,8 @@ import numpy as np
 from utils import util, process
 from models import RSHNet
 from itertools import permutations
+from main import RSHNetTrainer
+from config import opt
 
 def loss(output, label):
 	'''
@@ -60,6 +62,14 @@ def test_net():
 	m, z = net(x)
 	print(m.shape, z.shape)
 
+def test_recursive_loss(**kwargs):
+	opt._parse(kwargs)
+	trainer = RSHNetTrainer(opt)
+	data = t.rand(10, 100, 129)
+	label = t.rand(3, 10, 100, 129)
+	L1, L2, L3 = trainer.recursive_loss(data, label)
+	print(L1, L2, L3)
+	
 '''
 def test_net():
 	net = RSHNet()
@@ -112,4 +122,4 @@ def test_stft():
 	#print(np.sum(stft_sig.T - stft_sig_[2][0]))
 
 if __name__ == '__main__':
-	test_net()
+	test_recursive_loss()

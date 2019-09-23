@@ -5,7 +5,7 @@ import torch as t
 
 class DefaultConfig(object):
 	# visdom
-	vis = True 
+	vis = False 
 	env = 'default'
 	vis_port = 8097
 
@@ -16,7 +16,7 @@ class DefaultConfig(object):
 	model_kwargs = {
 		"num_bins":129,
 		"hidden_size":600,
-		"bidirectioonal":True,
+		"bidirectional":True,
 		"num_layers":2,
 		"rnn":"lstm",
 		"act_func":"sigmoid"
@@ -24,14 +24,14 @@ class DefaultConfig(object):
 	# train args
 	alpha = 1.
 	beta = 1.
-	greedy = False
+	greedy = True
 
 	# dataset path ...
 	train_identification_data_root = '../processed_data/train_identification'  # 训练集存放路径
 	test_identification_data_root = '../processed_data/test_identification'  # 测试集存放路径
 
 	batch_size = 32  # batch size
-	use_gpu = True	# user GPU or not
+	use_gpu = False	# user GPU or not
 	num_workers = 4  # how many workers for loading data
 	print_freq = 20  # print info every N batch
 

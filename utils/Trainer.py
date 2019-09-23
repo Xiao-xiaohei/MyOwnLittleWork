@@ -1,7 +1,9 @@
 import torch as t
+import models
 
 from torchnet import meter
-from tqdm import tqdm 
+from tqdm import tqdm
+from utils.visualize import Visualizer
 
 class Trainer(object):
 	'''
@@ -11,7 +13,7 @@ class Trainer(object):
 	'''
 	def __init__(self, opt):
 		self.vis = Visualizer(opt.env, port=opt.vis_port) if opt.vis else None
-		self.model = getattr(models, opt.model_name)(**opt.model_kwargs)
+		self.model = getattr(models, opt.model)(**opt.model_kwargs)
 
 		if opt.load_model_path:
 			self.model.load_state_dict(t.load(opt.load_model_path))
@@ -26,7 +28,7 @@ class Trainer(object):
 			"rmsprop": t.optim.RMSprop 	# momentum, weight_decay, lr
 		}
 		if self.opt.optimizer not in supported_optimizer:
-			raise ValueError("Unsupported optimizer {}"format(self.opt.optimizer))
+			raise ValueError("Unsupported optimizer {}".format(self.opt.optimizer))
 		_kwargs = {
 			"lr": self.opt.lr,
 			"weight_decay": self.opt.weight_decay

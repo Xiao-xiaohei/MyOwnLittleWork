@@ -1,6 +1,7 @@
 #coding=utf-8
 
 import torch as t
+import torch.nn as nn
 from config import opt
 from utils.visualize import Visualizer
 from utils.Trainer import Trainer
@@ -41,7 +42,7 @@ class RSHNetTrainer(Trainer):
 			inputs = t.cat([data, M], dim=-1)
 			tmp_m, tmp_z = self.model(inputs)
 			if self.greedy:
-				tmp_M = t.stack([m for _ in range(C)], dim=0)
+				tmp_M = t.stack([tmp_m for _ in range(C)], dim=0)
 				tmp_loss = t.norm(tmp_M - label, p='fro', dim=[-2, -1])	# size [C, B]
 				# weight mask the tmp_loss (since some have been matched
 				tmp_loss += (t.max(tmp_loss) * t.ones(tmp_loss.shape))
@@ -68,6 +69,7 @@ class RSHNetTrainer(Trainer):
 		else:
 			pit_mat = t.stack([self.mse_loss(loss, label, p) for p in permutations(range(C))])
 			L_mask, min_per = t.min(pit_mat, dim=0)
+			L_mask = t.sum(L_mask)
 		L_flag = nn.BCELoss()(t.stack(flags, dim=1), stop_flag)
 		L_resMask = t.norm(M, 2)
 		
@@ -85,6 +87,9 @@ class RSHNetTrainer(Trainer):
 			pit_mat = t.stack([self.mse_loss(M, label[0], p) for p in permutations(range(C))])
 			L_mask, min_per = t.min(pit_mat, dim=0)
 		'''
+		# for test
+		#return t.sum(L_mask), L_flag, L_resMask
+
 		return L_mask + self.alpha * L_flag + self.beta * L_resMask
 
 	def mse_loss(self, obtain_m, ref_m, permutation):
@@ -94,7 +99,7 @@ class RSHNetTrainer(Trainer):
 			permutation: one permutation of C!
 		'''
 		# get a loss with shape [B, ]
-		return t.sum([self.mse(obtain_m[s], ref_m[t]) for s, t in enumerate(permutation)])
+		return sum([self.mse(obtain_m[s], ref_m[t]) for s, t in enumerate(permutation)])
 
 	def mse(self, ob_m, ref_m):
 		'''

@@ -54,8 +54,7 @@ class RSHNet(nn.Module):
 		'''
 		if x.dim() != 3:
 			x = t.unsqueeze(x, 0)
-
-		print(x.shape)
+			
 		x, _ = self.rnn(x)
 		m = self.mask(x)
 		m = self.act_func(m)
