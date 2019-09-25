@@ -5,7 +5,9 @@ import random
 import pickle
 import numpy as np
 import torch as t
+
 from utils.process import compute_vad_mask
+from torch.nn.utils.rnn import pack_sequence, pad_sequence
 
 # data is saved as ... '..data/speakers/[tr, ts, cv]/[mix1.npy, mix2.npy...]'
 
@@ -31,15 +33,14 @@ class MixSpeakers(object):
 
 	def __getitem__(self, index):
 		if isinstance(index, slice):
-			x_res = []
-			vad_res = []
-			label_res = []
+			tmps = []
 			for ii in range(index.start, index.stop):
-				tmp_mix, tmp_vad, tmp_label = self[ii]
-				x_res.append(tmp_mix)
-				vad_res.append(tmp_vad)
-				label_res.append(tmp_label)
-				return x_res, vad_res, label_res	#  which are not align
+				tmps.append(self[ii])
+			tmps = sorted(tmps, key=lambda x:x[0].shape[0], reverse=True)
+			x_res = pack_sequence([x[0] for x in tmps])
+			vad_res = pad_sequence([x[1] for x in tmps], batch_first=True)
+			label_res = pad_sequence([x[2] for x in tmps], batch_first=True)
+			return x_res, vad_res, label_res	#  which are not align
 		else:
 			mix = self.mixes[index]
 			try:
@@ -54,7 +55,8 @@ class MixSpeakers(object):
 				mix_x = t.from_numpy(x[0])
 				vad_x = t.from_numpy(vad_x)
 				label = t.from_numpy(label)
-				return (mix_x, vad_x, label)
+				label = label.permute(1, 0, 2)
+				return [mix_x, vad_x, label]
 			except:
 				new_index = random.randint(0, len(self) - 1)
 				return self[new_index]
@@ -83,9 +85,5 @@ class DataLoader(object):
 			else:
 				b = step
 			mixes, vads, labels = self.mix_speakers[step:step + self.batch_size]
-
-			#############################
-			#    pack or pad sequence   #
-			#############################
 
 			return (mixes, vads, labels)

@@ -1,6 +1,8 @@
 import torch as t
 import torch.nn as nn
 
+from torch.nn.utils.rnn import PackedSequence, pad_packed_sequence
+
 class RSHNet(nn.Module):
 	'''
 		Recurrent Selective Hearing Networks
@@ -52,15 +54,18 @@ class RSHNet(nn.Module):
 			Mask: [B, T, num_bins]
 			flag: [B]
 		'''
-		if x.dim() != 3:
+		is_packed = isinstance(x, PackedSequence)
+		if not is_packed and x.dim() != 3:
 			x = t.unsqueeze(x, 0)
-			
+
 		x, _ = self.rnn(x)
+		if is_packed:
+			x, _ = pad_packed_sequence(x, batch_first=True)
 		m = self.mask(x)
 		m = self.act_func(m)
-		z = self.flag(x)
-		z = t.mean(t.sigmoid(z).squeeze(2), 1)
-		return m, z
+		z = self.flag(x[:, -1, :])	# [B, 1]
+		#z = t.mean(t.sigmoid(z).squeeze(2), 1)
+		return m, t.squeeze(z)
 
 	"""
 	def forward(self, x, C):

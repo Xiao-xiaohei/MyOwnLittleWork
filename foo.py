@@ -3,6 +3,7 @@ import torch.nn as nn
 import scipy.signal as signal
 import numpy as np
 
+from torch.nn.utils.rnn import pack_sequence, pad_packed_sequence, pack_padded_sequence
 from utils import util, process
 from models import RSHNet
 from itertools import permutations
@@ -59,9 +60,15 @@ def mse(ob_m, ref_m):
 
 def test_net():
 	net = RSHNet()
-	x = t.rand(10, 100, 258)
-	print("{} #param: {:.2f}".format(net.name, util.ComputParameters(net)))
-	m, z = net(x)
+	x = [t.rand(100, 129), t.rand(90, 129), t.rand(80, 129)]
+	xx = pack_sequence(x)
+	xxx, batch_length = pad_packed_sequence(xx, batch_first=True)
+	M = t.ones(xxx.shape)
+	xxxx = t.cat([xxx, M], dim=-1)
+	print(xxxx.shape)
+	xxxxx = pack_padded_sequence(xxxx, batch_length, batch_first=True)
+	#print("{} #param: {:.2f}".format(net.name, util.ComputParameters(net)))
+	m, z = net(xxxxx)
 	print(m.shape, z.shape)
 
 def test_recursive_loss(**kwargs):
@@ -139,4 +146,4 @@ def test_MixSpeakers():
 	print(res[0][0].shape)
 
 if __name__ == '__main__':
-	test_MixSpeakers()
+	test_net()

@@ -2,6 +2,7 @@
 
 import torch as t
 import torch.nn as nn
+from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
 from config import opt
 from utils.visualize import Visualizer
 from utils.Trainer import Trainer
@@ -35,11 +36,12 @@ class RSHNetTrainer(Trainer):
 		stop_flag[:, -1] = 1
 		loss = []	# if greedy, it's directly loss array [C, B], else Ms [C, B, T, num_bins]!
 		flags = []
-		M = t.ones(data.shape)	# M [B, T, num_bins]
+		padded_data, data_lengths = pad_packed_sequence(data, batch_first=True)
+		M = t.ones(padded_data.shape)	# M [B, T, num_bins]
 		res = t.ones([C, B])
 		min_per = []
 		for i in range(C):
-			inputs = t.cat([data, M], dim=-1)
+			inputs = pack_padded_sequence(t.cat([padded_data, M], dim=-1), data_lengths, batch_first=True)
 			tmp_m, tmp_z = self.model(inputs)
 			if self.greedy:
 				tmp_M = t.stack([tmp_m for _ in range(C)], dim=0)
