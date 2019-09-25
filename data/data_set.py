@@ -15,10 +15,11 @@ class MixSpeakers(object):
 		path is '.../total/[tr, cv, ts]'
 		I'm too vegetable...
 		'''
+		self.root = path
 		self.mixes = os.listdir(path)
 		self.vad_threshold = vad_threshold
 		try:
-			mixes.remove('.DS_Store')
+			self.mixes.remove('.DS_Store')
 		except ValueError:
 			pass
 		self.length = len(self.mixes)
@@ -34,30 +35,29 @@ class MixSpeakers(object):
 			vad_res = []
 			label_res = []
 			for ii in range(index.start, index.stop):
-				tmp = self[ii]
-				x_res.append(tmp[0])
-				vad_res.append(tmp[1])
-				label_res.append(tmp[2])
-				return (x_res, vad_res, label_res)	#  which are not align
+				tmp_mix, tmp_vad, tmp_label = self[ii]
+				x_res.append(tmp_mix)
+				vad_res.append(tmp_vad)
+				label_res.append(tmp_label)
+				return x_res, vad_res, label_res	#  which are not align
 		else:
 			mix = self.mixes[index]
 			try:
 				#     details of path       #
-				x = np.load(mix)
+				x = np.load(os.path.join(self.root, mix))
 				vad_x = compute_vad_mask(x[0], self.vad_threshold)
 
+				#     details of label      #
+				label = x[1:]
+
+				#     trans to t.Tensor     #
+				mix_x = t.from_numpy(x[0])
+				vad_x = t.from_numpy(vad_x)
+				label = t.from_numpy(label)
+				return (mix_x, vad_x, label)
 			except:
 				new_index = random.randint(0, len(self) - 1)
-
-			#     details of label      #
-			label = x[1:]
-
-			#     trans to t.Tensor     #
-			mix_x = t.from_numpy(x[0])
-			vad_x = t.from_numpy(vad_res)
-			label = t.from_numpy(label)
-
-			return (x, vad_x, label)
+				return self[new_index]
 
 class DataLoader(object):
 	def __init__(self, mix_speakers, batch_size=16, drop_last=False, vad_threshold=40):

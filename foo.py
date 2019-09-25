@@ -9,6 +9,8 @@ from itertools import permutations
 from main import RSHNetTrainer
 from config import opt
 
+from data import MixSpeakers
+
 def loss(output, label):
 	'''
 		output:
@@ -108,6 +110,15 @@ def test_mixwav():
 	nums = [1, 1, 1]
 	util.CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=44100)
 
+def test_createlabels():
+	speaker_nums = [2]
+	data_path = '/Users/yuanzeyu/Desktop/test_wav/saves'
+	save_path = '/Users/yuanzeyu/Desktop/test_wav/npy_saves'
+	window_size = 1024
+	window_shift = 768
+	spl = 44100
+	util.CreateLabelsAll(speaker_nums, data_path, save_path, window_size, window_shift, spl)
+
 def test_stft():
 	path = '/Users/yuanzeyu/Desktop/mix_LSHNY_-5db.wav'
 	sig = process.read_wav(path)
@@ -121,5 +132,11 @@ def test_stft():
 	#stft_sig = stft_sig[:-1, :]
 	#print(np.sum(stft_sig.T - stft_sig_[2][0]))
 
+def test_MixSpeakers():
+	path = '/Users/yuanzeyu/Desktop/test_wav/npy_saves/2speakers/tr'
+	mixes = MixSpeakers(path)
+	res = mixes[0:1]
+	print(res[0][0].shape)
+
 if __name__ == '__main__':
-	test_recursive_loss()
+	test_MixSpeakers()

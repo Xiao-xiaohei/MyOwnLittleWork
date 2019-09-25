@@ -6,6 +6,7 @@ import numpy as np
 import scipy.signal as signal
 from tqdm import tqdm
 from scipy.io import wavfile
+from .process import read_wav
 
 bug = True
 
@@ -103,7 +104,7 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 
 				save_dir = ""
 				for i in range(num_spks):
-					save_dir = save_path + "/" + str(num_spks) + "/" + data_type + "/s" + str(i + 1) + "/"
+					save_dir = save_path + "/" + str(num_spks) + "speakers/" + data_type + "/s" + str(i + 1) + "/"
 					try:
 						os.makedirs(save_dir)
 					except BaseException:
@@ -143,13 +144,14 @@ def ComputeMasks(mix, cleans, mask_type='PSM'):
 	clean_abs = [np.abs(stft) for stft in cleans]
 	clean_angle = [np.angle(stft) for stft in cleans]
 
-	inputs = np.concatnate((mix_abs, mix_angle), axis=1)
+	#inputs = np.concatenate((mix_abs, mix_angle), axis=1)
+	
 	if mask_type == 'PSM':
 		cross_masks = [s_abs * np.cos(mix_angle - s_angle) for s_abs, s_angle in zip(clean_abs, clean_angle)]
 
-	return inputs, np.stack(cross_masks, axis=0)	
+	return mix_abs, mix_angle, cross_masks
 
-def CreateLabelOnce(data, wav_path, data_type, save_path, sample_rate, window_size, window_shift, spl=8000):
+def CreateLabelOnce(data, wav_path, data_type, save_path, window_size, window_shift, spl=8000):
 	'''
 	The 'wavpath' is the wavs of s1, s2, ..., sC and s_mix or other info to know which wavs are in the same group
 	Here is the latter form from [info].txt created before.
@@ -184,18 +186,22 @@ def CreateLabelOnce(data, wav_path, data_type, save_path, sample_rate, window_si
 	# Mask Computation eg IBM, IRM, PSM(mainly focused)...
 	# go for dinner! --09.19 16:25
 
-	inputs, labels = ComputeMasks(mix_stft, stfts)
+	inputs_abs, inputs_angle, labels = ComputeMasks(mix_stft, stfts)
 
 	#  Save features...names' parse problem!  #
 	#    or just process wav in dataloader?   #
-	new_name = str(C) + "speakers/" + data_type + "/" + wav_name[:-3] + "npy"
-
-	res = np.stack([inputs, labels], axis=0)
-	np.save(save_path + "/" + new_name, res)
+	new_dir = str(C) + "speakers/" + data_type + "/"
+	try:
+		os.makedirs(save_path + "/" + new_dir)
+	except BaseException:
+		pass
+	new_name = wav_name[:-3] + "npy"
+	res = np.stack([inputs_abs] + labels, axis=0)
+	np.save(save_path + "/" + new_dir + "/" + new_name, res)
 
 	return
 
-def CreateLabelsAll(info_file, speaker_nums, data_path, save_path, sample_rate, window_size, window_shift, spl=8000):
+def CreateLabelsAll(speaker_nums, data_path, save_path, window_size, window_shift, spl=8000):
 	'''
 	preprocess all data, which includes num_speakers[2, 3, 4...] & ['tr', 'ts', 'cv']
 	I make the hypothesis that the space to save data is enough...
@@ -207,10 +213,10 @@ def CreateLabelsAll(info_file, speaker_nums, data_path, save_path, sample_rate, 
 
 	for data_type in data_types:
 		for spk_num in speaker_nums:
-			parse_file = info_file + "/" + str(spk_num) + "/" + data_type + ".txt"
+			parse_file = data_path + "/" + str(spk_num) + "speakers/" + data_type + ".txt"
 
-			with open(new_file_name, 'r') as f:
+			with open(parse_file, 'r') as f:
 				info_lines = f.readlines()
 
 				for line in info_lines:
-					CreateLabelOnce(data_path, line, data_type, save_path, sample_rate, window_size, window_shift, spl)
+					CreateLabelOnce(data_path, line, data_type, save_path, window_size, window_shift, spl)
