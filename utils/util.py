@@ -18,11 +18,14 @@ def ComputParameters(net, Mb=True):
 
 def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reverberation=False):
 	'''
-		path: str, wav path, raw data
-		num_speakers: list
+		path: str, wav path, raw data, eg: ../data and its sons are ../data/tr/sp_num/xx.wav & ../data/ts/sp_num/xx.wav
+		num_speakers: list, eg: [2, 3, 4, ...]
 		snr_range: [min, max]
-		nums: list as [tr_num, cv_num, ts_num]
+		nums: list as [tr_num, cv_num, ts_num] eg: [20000, 5000, 3000]
 		reverberation: Not now
+
+		There will be:
+			../save_data/Cspeakers/[tr.txt, ts.txt, cv.txt, tr/[mix, s1, s2, ...], ts/..., cv/...]
 	'''
 	tr_path = path + '/tr' # not sure...
 	ts_path = path + '/ts'
@@ -45,8 +48,9 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 		return signal / s_p if s_p > 0 else signal
 
 	for num_spks in num_speakers:
-		file_info = []
 		for ii, data_type in enumerate(data_types):
+			file_info = []
+
 			wav_pairs = []
 			tmp_num = 0
 			type_num = nums[ii]
@@ -99,7 +103,7 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 
 				save_dir = ""
 				for i in range(num_spks):
-					save_dir = save_path + str(num_spks) + "_" + data_type + "/s" + str(i + 1) + "/"	# not sure...
+					save_dir = save_path + "/" + str(num_spks) + "/" + data_type + "/s" + str(i + 1) + "/"
 					try:
 						os.makedirs(save_dir)
 					except BaseException:
@@ -113,14 +117,14 @@ def CreateMixWave(path, save_path, num_speakers, snr_range, nums, spl=8000, reve
 					pass
 				wavfile.write(mix_dir + save_name, spl, merge_wavs[num_spks].astype(np.int16))
 
-		try:
-			os.makedirs(path + "_" + str(num_spks) + "speakers/")
-		except BaseException:
-			pass
-		with open(path + "_" + str(num_spks) + "speakers/" + str(num_spks) + "speakers" + ".txt", "w", encoding="utf-8") as f:
-			for row in file_info:
-				f.write(row)
-				f.write("\n")
+			try:
+				os.makedirs(save_path + "/" + str(num_spks) + "speakers/")
+			except BaseException:
+				pass
+			with open(save_path + "/" + str(num_spks) + "speakers/" + data_type + ".txt", "w", encoding="utf-8") as f:
+				for row in file_info:
+					f.write(row)
+					f.write("\n")
 
 def ComputeMasks(mix, cleans, mask_type='PSM'):
 	'''
@@ -145,22 +149,21 @@ def ComputeMasks(mix, cleans, mask_type='PSM'):
 
 	return inputs, np.stack(cross_masks, axis=0)	
 
-def CreateLabelOnce(wav_path, save_path, sample_rate, window_size, window_shift, spl=8000):
+def CreateLabelOnce(data, wav_path, data_type, save_path, sample_rate, window_size, window_shift, spl=8000):
 	'''
 	The 'wavpath' is the wavs of s1, s2, ..., sC and s_mix or other info to know which wavs are in the same group
 	Here is the latter form from [info].txt created before.
+	wav_path: [s1, snr1, s2, snr2, ..., mix]
+	save_path: ../data --> ../data/Cspeakers/data_type/xxx.npy
 	'''
-	
-	############################################
-	#       This part to parse 'wav_path'      #
-	############################################
+	wav_path = wav_path.split()
+	#This part to parse 'wav_path'
+	wav_name = wav_path[-1]
 
-	tmp_wav_dirs = os.listdir(wav_path)
-	C = len(tmp_wav_dirs) - 1
-	mix_wav = wav_path + '/mix.wav'	# not sure !
-	tmp_wav_dirs.remove(mix_wav)
-	mix_wav = read_wav(mix_wav)
-	wavs = [read_wav(wav_name) for wav_name in tmp_wav_dirs]
+	C = (len(wav_path) - 1) // 2
+	data = data + "/" + str(C) + "speakers/" + data_type + "/"
+	mix_wav = read_wav(data + "mix/" + wav_name)
+	wavs = [read_wav(data + "s" + str(i + 1) + "/" + wav_name) for i in range(C)]
 	new_name = None
 
 	# Here maybe need check dim whether [C, N] #
@@ -183,13 +186,12 @@ def CreateLabelOnce(wav_path, save_path, sample_rate, window_size, window_shift,
 
 	inputs, labels = ComputeMasks(mix_stft, stfts)
 
-	###########################################
 	#  Save features...names' parse problem!  #
 	#    or just process wav in dataloader?   #
-	###########################################
+	new_name = str(C) + "speakers/" + data_type + "/" + wav_name[:-3] + "npy"
 
 	res = np.stack([inputs, labels], axis=0)
-	np.save(save_path + '/' + new_name, res)
+	np.save(save_path + "/" + new_name, res)
 
 	return
 
@@ -201,18 +203,14 @@ def CreateLabelsAll(info_file, speaker_nums, data_path, save_path, sample_rate, 
 
 	data_types = ['tr', 'cv', 'ts']
 
-	###########################################
-	#             path problem                #
-	#       below is not the final code       #
-	###########################################
+	# path problem
 
 	for data_type in data_types:
 		for spk_num in speaker_nums:
-			new_file_name = info_file + data_type + '_' + str(spk_num) + '.txt'
-			new_save_path = save_path + data_type + '_' + str(spk_num)
+			parse_file = info_file + "/" + str(spk_num) + "/" + data_type + ".txt"
 
 			with open(new_file_name, 'r') as f:
 				info_lines = f.readlines()
 
 				for line in info_lines:
-					CreateLabelOnce(blablablabla)	# ....dbq
+					CreateLabelOnce(data_path, line, data_type, save_path, sample_rate, window_size, window_shift, spl)

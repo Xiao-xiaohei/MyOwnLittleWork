@@ -7,7 +7,7 @@ import numpy as np
 import torch as t
 from utils.process import compute_vad_mask
 
-# data is saved as ... '../total/tr/[mix1.npy, mix2.npy...]'
+# data is saved as ... '..data/speakers/[tr, ts, cv]/[mix1.npy, mix2.npy...]'
 
 class MixSpeakers(object):
 	def __init__(self, path, shuffle=True, vad_threshold=40):
