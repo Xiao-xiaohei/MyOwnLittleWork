@@ -63,7 +63,7 @@ class RSHNet(nn.Module):
 			x, _ = pad_packed_sequence(x, batch_first=True)
 		m = self.mask(x)
 		m = self.act_func(m)
-		z = self.flag(x[:, -1, :])	# [B, 1]
+		z = t.sigmoid(self.flag(x[:, -1, :]))	# [B, 1]
 		#z = t.mean(t.sigmoid(z).squeeze(2), 1)
 		return m, t.squeeze(z)
 

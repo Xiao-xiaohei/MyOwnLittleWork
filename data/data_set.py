@@ -39,8 +39,9 @@ class MixSpeakers(object):
 			tmps = sorted(tmps, key=lambda x:x[0].shape[0], reverse=True)
 			x_res = pack_sequence([x[0] for x in tmps])
 			vad_res = pad_sequence([x[1] for x in tmps], batch_first=True)
-			label_res = pad_sequence([x[2] for x in tmps], batch_first=True)
-			return x_res, vad_res, label_res	#  which are not align
+			label_res = pad_sequence([x[2] for x in tmps], batch_first=True)	# [B, T, C, num_bins]
+			label_res = label_res.permute(2, 0, 1, 3)	# [C, B, T, num_bins]
+			return x_res, vad_res, label_res
 		else:
 			mix = self.mixes[index]
 			try:
@@ -54,8 +55,8 @@ class MixSpeakers(object):
 				#     trans to t.Tensor     #
 				mix_x = t.from_numpy(x[0])
 				vad_x = t.from_numpy(vad_x)
-				label = t.from_numpy(label)
-				label = label.permute(1, 0, 2)
+				label = t.from_numpy(label)	# [C, T, num_bins]
+				label = label.permute(1, 0, 2)	# [T, C, num_bins]
 				return [mix_x, vad_x, label]
 			except:
 				new_index = random.randint(0, len(self) - 1)

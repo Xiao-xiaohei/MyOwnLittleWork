@@ -2,7 +2,7 @@
 
 import torch as t
 import torch.nn as nn
-from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence
+from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pad_sequence
 from config import opt
 from utils.visualize import Visualizer
 from utils.Trainer import Trainer
@@ -21,9 +21,9 @@ class RSHNetTrainer(Trainer):
 	def recursive_loss(self, data, label):
 		'''
 			data:
-				mix [B, T, num_bins]
+				mix [B, T, num_bins]	PackedSequence...
 			label:
-				M [C, B, T, num_bins]
+				M [C, B, T, num_bins]	Padded...
 
 			compute loss using PIT for M ~ M
 			L_{Mask}: MSE?
@@ -32,11 +32,14 @@ class RSHNetTrainer(Trainer):
 		'''
 		C = label.shape[0]
 		B = label.shape[1]
+		num_bins = label.shape[-1]
 		stop_flag = t.zeros([B, C])
 		stop_flag[:, -1] = 1
 		loss = []	# if greedy, it's directly loss array [C, B], else Ms [C, B, T, num_bins]!
 		flags = []
 		padded_data, data_lengths = pad_packed_sequence(data, batch_first=True)
+		Loss_Mask = pad_sequence([t.ones([times, C, num_bins]) for times in data_lengths], batch_first=True)	# [B, T, C, num_bins]
+		Loss_Mask = Loss_Mask.permute(2, 0, 1, 3)	# [C, B, T, num_bins]
 		M = t.ones(padded_data.shape)	# M [B, T, num_bins]
 		res = t.ones([C, B])
 		min_per = []
@@ -45,7 +48,7 @@ class RSHNetTrainer(Trainer):
 			tmp_m, tmp_z = self.model(inputs)
 			if self.greedy:
 				tmp_M = t.stack([tmp_m for _ in range(C)], dim=0)
-				tmp_loss = t.norm(tmp_M - label, p='fro', dim=[-2, -1])	# size [C, B]
+				tmp_loss = t.norm((tmp_M - label) * Loss_Mask, p='fro', dim=[-2, -1])	# size [C, B]
 				# weight mask the tmp_loss (since some have been matched
 				tmp_loss += (t.max(tmp_loss) * t.ones(tmp_loss.shape))
 				# get indices
@@ -69,9 +72,10 @@ class RSHNetTrainer(Trainer):
 			min_per = t.stack(min_per, dim=0)
 			L_mask = t.sum(loss)
 		else:
-			pit_mat = t.stack([self.mse_loss(loss, label, p) for p in permutations(range(C))])
+			pit_mat = t.stack([self.mse_loss(loss, label, p, Loss_Mask) for p in permutations(range(C))])
 			L_mask, min_per = t.min(pit_mat, dim=0)
 			L_mask = t.sum(L_mask)
+
 		L_flag = nn.BCELoss()(t.stack(flags, dim=1), stop_flag)
 		L_resMask = t.norm(M, 2)
 		
@@ -90,28 +94,30 @@ class RSHNetTrainer(Trainer):
 			L_mask, min_per = t.min(pit_mat, dim=0)
 		'''
 		# for test
-		#return t.sum(L_mask), L_flag, L_resMask
+		return L_mask, L_flag, L_resMask
 
-		return L_mask + self.alpha * L_flag + self.beta * L_resMask
+		#return L_mask + self.alpha * L_flag + self.beta * L_resMask
 
-	def mse_loss(self, obtain_m, ref_m, permutation):
+	def mse_loss(self, obtain_m, ref_m, permutation, Mask):
 		'''
 			obtain_m: the elimated masks [C, B, T, num_bins]
 			ref_m: the reference masks [C, B, T, num_bins]
 			permutation: one permutation of C!
+			Mask: deal with differrent T steps... [C, B, T, num_bins]
 		'''
 		# get a loss with shape [B, ]
-		return sum([self.mse(obtain_m[s], ref_m[t]) for s, t in enumerate(permutation)])
+		return sum([self.mse(obtain_m[s], ref_m[t], Mask[t]) for s, t in enumerate(permutation)])
 
-	def mse(self, ob_m, ref_m):
+	def mse(self, ob_m, ref_m, loss_m):
 		'''
 			input:
 				ob_m: [B, T, num_bins]
 				ref_m: [B, T, num_bins]
+				loss_m: [B, T, num_bins]
 			out:
 				loss: [B, ]
 		'''
-		return t.norm(ob_m - ref_m, p='fro', dim=[-2, -1])
+		return t.norm((ob_m - ref_m) * loss_m, p='fro', dim=[-2, -1])
 
 
 def train(**kwargs):

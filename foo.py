@@ -3,7 +3,7 @@ import torch.nn as nn
 import scipy.signal as signal
 import numpy as np
 
-from torch.nn.utils.rnn import pack_sequence, pad_packed_sequence, pack_padded_sequence
+from torch.nn.utils.rnn import pack_sequence, pad_packed_sequence, pack_padded_sequence, pad_sequence
 from utils import util, process
 from models import RSHNet
 from itertools import permutations
@@ -74,8 +74,11 @@ def test_net():
 def test_recursive_loss(**kwargs):
 	opt._parse(kwargs)
 	trainer = RSHNetTrainer(opt)
-	data = t.rand(10, 100, 129)
-	label = t.rand(3, 10, 100, 129)
+	data = [t.rand(120, 129), t.rand(110, 129), t.rand(100, 129)]
+	data = pack_sequence(data)
+	label = [t.stack([t.rand([120, 129]), t.rand([120, 129]), t.rand([120, 129])]), t.stack([t.rand([110, 129]), t.rand([110, 129]), t.rand([110, 129])]), t.stack([t.rand([100, 129]), t.rand([100, 129]), t.rand([100, 129])])]
+	label = [x.permute(1, 0, 2) for x in label]
+	label = pad_sequence(label, batch_first=True).permute(2, 0, 1, 3)
 	L1, L2, L3 = trainer.recursive_loss(data, label)
 	print(L1, L2, L3)
 	
@@ -146,4 +149,4 @@ def test_MixSpeakers():
 	print(res[0][0].shape)
 
 if __name__ == '__main__':
-	test_net()
+	test_recursive_loss()
