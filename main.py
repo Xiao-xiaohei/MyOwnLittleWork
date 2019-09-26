@@ -125,3 +125,20 @@ def train(**kwargs):
 	
 	trainer = RSHNetTrainer(opt)
 	trainer.run()
+
+def help():
+	print("""
+	usage : python file.py <function> [--args=value]
+	<function> := train | help
+	example: 
+			python {0} train --env='env0701' --lr=0.01
+			python {0} help
+	avaiable args:""".format(__file__))
+
+	from inspect import getsource
+	source = (getsource(opt.__class__))
+	print(source)
+
+if __name__=='__main__':
+	import fire
+	fire.Fire()
