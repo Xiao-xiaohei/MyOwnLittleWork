@@ -21,6 +21,19 @@ class Trainer(object):
 		self.model.to(opt.device)
 		self.opt = opt
 
+	def set_train_dataloader(self):
+		'''
+		return train_dataloader & cv_dataloader
+		in the future, the func will be more abstract ! But not now... dbq....
+		'''
+		pass
+
+	def set_test_dataloader(self):
+		'''
+		return tesr_dataloader
+		'''
+		pass
+
 	def set_optimizer(self):
 		supported_optimizer = {
 			"sgd": t.optim.SGD,	# momentum, weight_decay, lr
@@ -43,6 +56,7 @@ class Trainer(object):
 	def run(self):
 		self.set_optimizer()
 
+		train_dataloader, cv_dataloader = self.set_train_dataloader()
 		train_loss_meter = meter.AverageValueMeter()
 		val_loss_meter = meter.AverageValueMeter()
 
@@ -52,8 +66,11 @@ class Trainer(object):
 
 			self.model.train()
 
-			for ii, (data, label) in tqdm(enumerate(self.train_dataloader)):
-				inputs = data.to(self.opt.device, dtype=t.float)
+			for ii, (data, label) in tqdm(enumerate(train_dataloader)):
+				if isinstance(data, list):
+					inputs = [d.to(self.opt.device, dtype=t.float) for d in data]
+				else:
+					inputs = data.to(self.opt.device, dtype=t.float)
 				target = label.to(self.opt.device)
 
 				self.optimizer.zero_grad()
@@ -73,7 +90,7 @@ class Trainer(object):
 			self.model.eval()
 
 			with t.no_grad():
-				for ii, (data, label) in tqdm(enumerate(self.val_dataloader)):
+				for ii, (data, label) in tqdm(enumerate(cv_dataloader)):
 					inputs = data.to(self.opt.device, dtype=t.float)
 					target = label.to(self.opt.device)
 

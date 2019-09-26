@@ -87,4 +87,4 @@ class DataLoader(object):
 				b = step
 			mixes, vads, labels = self.mix_speakers[b:b + self.batch_size]
 
-			yield (mixes, vads, labels)
+			yield [mixes, vads], labels

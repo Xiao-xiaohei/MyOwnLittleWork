@@ -6,6 +6,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pad_se
 from config import opt
 from utils.visualize import Visualizer
 from utils.Trainer import Trainer
+from data import MixSpeakers, DataLoader
 from itertools import permutations
 import numpy as np
 import os
@@ -18,10 +19,15 @@ class RSHNetTrainer(Trainer):
 		self.beta = opt.beta
 		self.greedy = opt.greedy
 
+	def set_train_dataloader(self):
+		mixes = MixSpeakers(self.opt.train_data_path.format(num=self.opt.speaker_nums[0], data_type='tr'))	# just 2 speakers now for test!
+		return DataLoader(mixes, batch_size=self.opt.batch_size), None
+
 	def recursive_loss(self, data, label):
 		'''
 			data:
 				mix [B, T, num_bins]	PackedSequence...
+				and vad [B, T, num_bins] ...
 			label:
 				M [C, B, T, num_bins]	Padded...
 
@@ -30,6 +36,9 @@ class RSHNetTrainer(Trainer):
 			L_{flag}: CrossEntropy? MSE?
 			L_{res_Mask}: Square？ or CrossEntropy that minus is heavily gg!
 		'''
+		# just for test... no need of vad...
+		data = data[0]
+
 		C = label.shape[0]
 		B = label.shape[1]
 		num_bins = label.shape[-1]

@@ -27,10 +27,13 @@ class DefaultConfig(object):
 	greedy = True
 
 	# dataset path ...
-	train_identification_data_root = '../processed_data/train_identification'  # 训练集存放路径
-	test_identification_data_root = '../processed_data/test_identification'  # 测试集存放路径
+	train_data_path = '../data/{num}speakers/{data_type}'  # 训练集存放路径
+	test_data_path = '../processed_data/test_identification'  # 测试集存放路径
 
-	batch_size = 32  # batch size
+	# train args
+	speaker_nums = [2, 3, 4]
+	optimizer = 'adam'
+	batch_size = 16  # batch size
 	use_gpu = False	# user GPU or not
 	num_workers = 4  # how many workers for loading data
 	print_freq = 20  # print info every N batch
