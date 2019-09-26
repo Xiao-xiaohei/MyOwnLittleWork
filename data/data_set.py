@@ -85,6 +85,6 @@ class DataLoader(object):
 					b = l - self.batch_size
 			else:
 				b = step
-			mixes, vads, labels = self.mix_speakers[step:step + self.batch_size]
+			mixes, vads, labels = self.mix_speakers[b:b + self.batch_size]
 
-			return (mixes, vads, labels)
+			yield (mixes, vads, labels)
