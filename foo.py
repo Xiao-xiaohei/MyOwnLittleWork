@@ -10,7 +10,7 @@ from itertools import permutations
 from main import RSHNetTrainer
 from config import opt
 
-from data import MixSpeakers
+from data import MixSpeakers, get_bs
 
 def loss(output, label):
 	'''
@@ -148,5 +148,10 @@ def test_MixSpeakers():
 	res = mixes[0:1]
 	print(res[0][0].shape)
 
+def test_bs():
+	l = 40
+	batch_size = 16
+	print(get_bs(l, batch_size, 2))
+
 if __name__ == '__main__':
-	test_recursive_loss()
+	test_bs()

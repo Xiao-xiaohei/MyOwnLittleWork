@@ -20,8 +20,9 @@ class RSHNetTrainer(Trainer):
 		self.greedy = opt.greedy
 
 	def set_train_dataloader(self):
-		mixes = MixSpeakers(self.opt.train_data_path.format(num=self.opt.speaker_nums[0], data_type='tr'))	# just 2 speakers now for test!
-		return DataLoader(mixes, batch_size=self.opt.batch_size), None
+		#mixes = MixSpeakers(self.opt.train_data_path.format(num=self.opt.speaker_nums[0], data_type='tr'))	# just 2 speakers now for test!
+		#return DataLoader(mixes, batch_size=self.opt.batch_size), None
+		return DataLoader(self.opt.train_data_path, self.opt.speaker_nums, self.opt.batch_size), DataLoader(self.opt.cv_data_path, self.opt.speaker_nums, self.opt.batch_size)
 
 	def recursive_loss(self, data, label):
 		'''
@@ -44,13 +45,18 @@ class RSHNetTrainer(Trainer):
 		num_bins = label.shape[-1]
 		stop_flag = t.zeros([B, C])
 		stop_flag[:, -1] = 1
+		stop_flag = stop_flag.to(self.opt.device)
 		loss = []	# if greedy, it's directly loss array [C, B], else Ms [C, B, T, num_bins]!
 		flags = []
 		padded_data, data_lengths = pad_packed_sequence(data, batch_first=True)
 		Loss_Mask = pad_sequence([t.ones([times, C, num_bins]) for times in data_lengths], batch_first=True)	# [B, T, C, num_bins]
 		Loss_Mask = Loss_Mask.permute(2, 0, 1, 3)	# [C, B, T, num_bins]
+		Loss_Mask = Loss_Mask.to(self.opt.device)
 		M = t.ones(padded_data.shape)	# M [B, T, num_bins]
-		res = t.ones([C, B])
+		M = M.to(self.opt.device, dtype=t.float32)
+		res = t.ones([C, B]).to(self.opt.device, dtype=t.float32)
+		reses = []
+		reses.append(res)
 		min_per = []
 		for i in range(C):
 			inputs = pack_padded_sequence(t.cat([padded_data, M], dim=-1), data_lengths, batch_first=True)
@@ -59,19 +65,21 @@ class RSHNetTrainer(Trainer):
 				tmp_M = t.stack([tmp_m for _ in range(C)], dim=0)
 				tmp_loss = t.norm((tmp_M - label) * Loss_Mask, p='fro', dim=[-2, -1])	# size [C, B]
 				# weight mask the tmp_loss (since some have been matched
-				tmp_loss += (t.max(tmp_loss) * t.ones(tmp_loss.shape))
+				tmp_loss = tmp_loss + (t.max(tmp_loss) * res)
 				# get indices
 				indice = t.min(tmp_loss, dim=0)	# both values [B, ] and indices [B, ]
 				min_per.append(indice.indices)
 				new_mask = []
+				new_res = res.clone()
 				for iii in range(B):
 					new_mask.append(label[indice.indices[iii]][iii])
-					res[indice.indices[iii]][iii] = 0
+					new_res[indice.indices[iii]][iii] = 0
+				reses.append(new_res)
 
-				M -= t.stack(new_mask, dim=0)
+				M = M - t.stack(new_mask, dim=0)
 				loss.append(indice.values)
 			else:
-				M -= tmp_m
+				M = M - tmp_m
 				loss.append(tmp_m)
 			flags.append(tmp_z)
 

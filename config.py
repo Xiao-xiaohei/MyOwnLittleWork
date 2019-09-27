@@ -27,7 +27,8 @@ class DefaultConfig(object):
 	greedy = True
 
 	# dataset path ...
-	train_data_path = '../data/{num}speakers/{data_type}'  # 训练集存放路径
+	train_data_path = '../data/{num}speakers/tr'  # 训练集存放路径
+	cv_data_path = '../data/{num}speakers/cv'
 	test_data_path = '../processed_data/test_identification'  # 测试集存放路径
 
 	# train args

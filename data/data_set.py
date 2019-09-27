@@ -62,8 +62,9 @@ class MixSpeakers(object):
 				new_index = random.randint(0, len(self) - 1)
 				return self[new_index]
 
-class DataLoader(object):
-	def __init__(self, mix_speakers, batch_size=16, drop_last=False, vad_threshold=40):
+# Not use...
+class Dataloader(object):
+	def __init__(self, mix_speakers, batch_size=16, drop_last=False):
 		self.mix_speakers = mix_speakers
 		self.batch_size = batch_size
 		self.drop_last = drop_last
@@ -75,8 +76,11 @@ class DataLoader(object):
 		else:
 			return len(self.mix_speakers) // self.batch_size + 1
 
+	def _total_length(self):
+		return len(self.mix_speakers)
+
 	def __iter__(self):
-		l = len(self)
+		l = self._total_length()
 		for step in range(0, l, self.batch_size):
 			if step + self.batch_size > l:
 				if self.drop_last:
@@ -86,5 +90,41 @@ class DataLoader(object):
 			else:
 				b = step
 			mixes, vads, labels = self.mix_speakers[b:b + self.batch_size]
+
+			yield [mixes, vads], labels
+
+def get_bs(l, batch_size, index, drop_last=False):
+	ans = [(s, index) for s in range(0, l, batch_size)]
+	if ans[-1][0] + batch_size > l:
+		if drop_last:
+			ans = ans[:-1]
+		else:
+			ans[-1] = (l - batch_size, index)
+	return ans
+
+class DataLoader(object):
+	def __init__(self, path, speaker_nums, batch_size=16, drop_last=False, vad_threshold=40, min_scale='batch'):
+		'''
+			path: .../{num}speakers/data_type
+			min_scale: 'subset' means [2s, 3s, 4s, ...] or 'batch' means [batch_2s, batch_3s, batch_2s, batch_4s, ...]
+		'''
+		self.batch_size = batch_size
+		if min_scale not in ['subset', 'batch']:
+			raise ValueError("No such scale for dataloading!")
+
+		self.mixes = [MixSpeakers(path.format(num=c), vad_threshold=vad_threshold) for c in speaker_nums]
+		self.indices = []
+		for ii, mix in enumerate(self.mixes):
+			self.indices += get_bs(len(mix), batch_size, ii, drop_last)
+
+		if min_scale == 'batch':
+			random.shuffle(self.indeces)
+
+	def __len__(self):
+		return len(self.indices)
+
+	def __iter__(self):
+		for b, index in self.indices:
+			mixes, vads, labels = self.mixes[index][b:b + self.batch_size]
 
 			yield [mixes, vads], labels
