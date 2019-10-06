@@ -34,6 +34,12 @@ class Trainer(object):
 		'''
 		pass
 
+	def compute_evaluation(self, data, label, types):
+		'''
+		return evaluation, eg SDR...
+		'''
+		pass
+
 	def set_optimizer(self):
 		supported_optimizer = {
 			"sgd": t.optim.SGD,	# momentum, weight_decay, lr
@@ -68,16 +74,16 @@ class Trainer(object):
 
 			for ii, (data, label) in tqdm(enumerate(train_dataloader)):
 				if isinstance(data, list):
-					inputs = [d.to(self.opt.device, dtype=t.float) for d in data]
+					inputs = [d.to(self.opt.device, dtype=t.float32) for d in data]
 				else:
-					inputs = data.to(self.opt.device, dtype=t.float)
+					inputs = data.to(self.opt.device, dtype=t.float32)
 				target = label.to(self.opt.device)
 
 				self.optimizer.zero_grad()
 
 				# output = self.model(inputs)
 
-				loss = self.recursive_loss(data, target)
+				loss = self.recursive_loss(inputs, target)
 				
 				loss.backward()
 				self.optimizer.step()
@@ -91,8 +97,11 @@ class Trainer(object):
 
 			with t.no_grad():
 				for ii, (data, label) in tqdm(enumerate(cv_dataloader)):
-					inputs = data.to(self.opt.device, dtype=t.float)
-					target = label.to(self.opt.device)
+					if isinstance(data, list):
+						inputs = [d.to(self.opt.device, dtype=t.float32) for d in data]
+					else:
+						inputs = data.to(self.opt.device, dtype=t.float32)
+					target = label.to(self.opt.device, dtype=t.float32)
 
 					output = self.model(inputs)
 					loss = self.loss(output, target)
@@ -103,3 +112,17 @@ class Trainer(object):
 
 			save_path = os.path.join(self.checkpoint, "{}.{:d}.pth".format(self.model.name, epoch))
 			t.save(self.model.state_dict(), save_path)
+
+	def test(self):
+		ts_dataloader = self.set_test_dataloader()
+
+		self.model.eval()
+
+		for ii, (data, label) in tqdm(enumerate(ts_dataloader)):
+			if isinstance(data, list):
+				inputs = [d.to(self.opt.device, dtype=t.float32) for d in data]
+			else:
+				inputs = data.to(self.opt.device, dtype=t.float32)
+			target = label.to(self.opt.device, dtype=t.float32)
+
+			ans = self.compute_evaluation(inputs, target, self.opt.evaluations)

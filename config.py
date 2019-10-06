@@ -38,6 +38,9 @@ class DefaultConfig(object):
 	use_gpu = False	# user GPU or not
 	num_workers = 4  # how many workers for loading data
 	print_freq = 20  # print info every N batch
+	
+	# test args
+	evaluations = ['SDR', ]
 
 	max_epoch = 15
 	lr = 0.001  # learning rate
