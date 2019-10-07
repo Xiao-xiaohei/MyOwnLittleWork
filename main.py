@@ -136,12 +136,57 @@ class RSHNetTrainer(Trainer):
 		'''
 		return t.norm((ob_m - ref_m) * loss_m, p='fro', dim=[-2, -1])
 
+	def compute_evaluation(self, datas, label, types):
+		'''
+			datas:
+				mix: [T, num_bins]
+				and (vad [T, num_bins]...
+			label:
+				[C, T, num_bins]
+			types:
+				['Acc', 'SDR', ...]
+
+		'''
+		ans = {}
+		# now no need of vad...
+		data = datas[0]
+		vad_mask = datas[1]
+
+		C = label.shape[0]
+
+		M = t.ones(data.shape)	# [T, num_bins]
+		M = M.to(self.opt.device, dtype=t.float32)
+
+		flag = 1.
+		c = 0
+		Loss = []
+		while flag >= 0.5:
+			inputs = t.cat([data, M], dim=-1)
+			tmp_m, flag = self.model(inputs)	# tmp_m [1, T, num_bins], flag [1, ] or []
+			
+			tmp_m = t.squeeze(tmp_m)
+
+			############################################
+			# directly compute SDR !... if it works :) #
+			############################################
+
+			Loss.append(tmp_m)
+			M = M - tmp_m
+			c += 1
+
+		if 'Acc' in types:
+			if c == C:
+				ans['Acc'] = True
+			else:
+				ans['Acc'] = False
 
 def train(**kwargs):
 	opt._parse(kwargs)
 	
 	trainer = RSHNetTrainer(opt)
 	trainer.run()
+
+
 
 def help():
 	print("""

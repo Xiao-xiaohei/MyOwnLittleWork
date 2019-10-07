@@ -34,9 +34,9 @@ class Trainer(object):
 		'''
 		pass
 
-	def compute_evaluation(self, data, label, types):
+	def compute_evaluation(self, datas, label, types):
 		'''
-		return evaluation, eg SDR...
+		return evaluation, types: eg Acc, SDR...
 		'''
 		pass
 
@@ -125,4 +125,4 @@ class Trainer(object):
 				inputs = data.to(self.opt.device, dtype=t.float32)
 			target = label.to(self.opt.device, dtype=t.float32)
 
-			ans = self.compute_evaluation(inputs, target, self.opt.evaluations)
+			ans = self.compute_evaluation(inputs, target, self.opt.evaluations)	# ans eg dic{'Acc':True/False, 'SDR':xxx, ...}

@@ -40,7 +40,7 @@ class DefaultConfig(object):
 	print_freq = 20  # print info every N batch
 	
 	# test args
-	evaluations = ['SDR', ]
+	evaluations = ['Acc', 'SDR', ]
 
 	max_epoch = 15
 	lr = 0.001  # learning rate
