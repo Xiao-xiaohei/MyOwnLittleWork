@@ -220,3 +220,6 @@ def CreateLabelsAll(speaker_nums, data_path, save_path, window_size, window_shif
 
 				for line in info_lines:
 					CreateLabelOnce(data_path, line, data_type, save_path, window_size, window_shift, spl)
+
+def ComputeSDRfromMask(data, vad, mask, spk):
+	pass

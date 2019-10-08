@@ -123,6 +123,6 @@ class Trainer(object):
 				inputs = [d.to(self.opt.device, dtype=t.float32) for d in data]
 			else:
 				inputs = data.to(self.opt.device, dtype=t.float32)
-			target = label.to(self.opt.device, dtype=t.float32)
+			# target = label.to(self.opt.device, dtype=t.float32)
 
 			ans = self.compute_evaluation(inputs, target, self.opt.evaluations)	# ans eg dic{'Acc':True/False, 'SDR':xxx, ...}

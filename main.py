@@ -3,9 +3,12 @@
 import torch as t
 import torch.nn as nn
 from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pad_sequence
+
 from config import opt
 from utils.visualize import Visualizer
 from utils.Trainer import Trainer
+from utils.util import ComputeSDRfromMask
+
 from data import MixSpeakers, DataLoader
 from itertools import permutations
 import numpy as np
@@ -142,7 +145,7 @@ class RSHNetTrainer(Trainer):
 				mix: [T, num_bins]
 				and (vad [T, num_bins]...
 			label:
-				[C, T, num_bins]
+				np arrays [C, T, num_bins]
 			types:
 				['Acc', 'SDR', ...]
 
@@ -160,15 +163,22 @@ class RSHNetTrainer(Trainer):
 		flag = 1.
 		c = 0
 		Loss = []
+		compute_SDR = True
+		if 'SDR' not in types:
+			compute_SDR = False
+		SDRs = []
 		while flag >= 0.5:
 			inputs = t.cat([data, M], dim=-1)
 			tmp_m, flag = self.model(inputs)	# tmp_m [1, T, num_bins], flag [1, ] or []
 			
 			tmp_m = t.squeeze(tmp_m)
-
-			############################################
-			# directly compute SDR !... if it works :) #
-			############################################
+			SDR = -100
+			# directly compute SDR each pair greedily!... if it works :)
+			if compute_SDR:
+				for spk in label:
+					tmp_SDR = ComputeSDRfromMask(data.numpy(), vad_mask, tmp_m, spk)
+					SDR = max(SDR, tmp_SDR)
+				SDRs.append(SDR)
 
 			Loss.append(tmp_m)
 			M = M - tmp_m
@@ -179,6 +189,9 @@ class RSHNetTrainer(Trainer):
 				ans['Acc'] = True
 			else:
 				ans['Acc'] = False
+
+		if compute_SDR:
+			ans['SDR'] = mean(SDRs)
 
 def train(**kwargs):
 	opt._parse(kwargs)
