@@ -7,7 +7,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pad_se
 from config import opt
 from utils.visualize import Visualizer
 from utils.Trainer import Trainer
-from utils.util import ComputeSDRfromMask
+from utils.util import RebuildWavFromMask, ComputeSDR
 
 from data import MixSpeakers, DataLoader
 from itertools import permutations
@@ -26,6 +26,9 @@ class RSHNetTrainer(Trainer):
 		#mixes = MixSpeakers(self.opt.train_data_path.format(num=self.opt.speaker_nums[0], data_type='tr'))	# just 2 speakers now for test!
 		#return DataLoader(mixes, batch_size=self.opt.batch_size), None
 		return DataLoader(self.opt.train_data_path, self.opt.speaker_nums, self.opt.batch_size), DataLoader(self.opt.cv_data_path, self.opt.speaker_nums, self.opt.batch_size)
+
+	def set_test_dataloader(self):
+		return DataLoader(self.opt.test_data_path, self.opt.speaker_nums, batch_size=1)
 
 	def recursive_loss(self, data, label):
 		'''
@@ -142,17 +145,18 @@ class RSHNetTrainer(Trainer):
 	def compute_evaluation(self, datas, label, types):
 		'''
 			datas:
-				mix: [T, num_bins]
+				mix: [T, num_bins]	complex
 				and (vad [T, num_bins]...
 			label:
-				np arrays [C, T, num_bins]
+				np arrays [C, nsamples]
 			types:
 				['Acc', 'SDR', ...]
 
 		'''
 		ans = {}
 		# now no need of vad...
-		data = datas[0]
+		raw_data = datas[0]	# complex [T, num_bins]
+		data = np.abs(raw_data)
 		vad_mask = datas[1]
 
 		C = label.shape[0]
@@ -170,13 +174,15 @@ class RSHNetTrainer(Trainer):
 		while flag >= 0.5:
 			inputs = t.cat([data, M], dim=-1)
 			tmp_m, flag = self.model(inputs)	# tmp_m [1, T, num_bins], flag [1, ] or []
-			
+
 			tmp_m = t.squeeze(tmp_m)
+			rebuild_wav = RebuildWavFromMask(raw_data, tmp_m.cpu().numpy(), window_size=self.opt.window_size, window=self.opt.window, window_shift=self.opt.window_shift)
+
 			SDR = -100
 			# directly compute SDR each pair greedily!... if it works :)
 			if compute_SDR:
 				for spk in label:
-					tmp_SDR = ComputeSDRfromMask(data.numpy(), vad_mask, tmp_m, spk)
+					tmp_SDR = ComputeSDR(rebuild_wav, spk)
 					SDR = max(SDR, tmp_SDR)
 				SDRs.append(SDR)
 

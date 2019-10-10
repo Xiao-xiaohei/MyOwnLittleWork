@@ -18,6 +18,9 @@ class MixSpeakers(object):
 		I'm too vegetable...
 		'''
 		self.root = path
+		self.train = True
+		if path.split('/')[-1] == 'ts':
+			self.train = False
 		self.mixes = os.listdir(path)
 		self.vad_threshold = vad_threshold
 		try:
@@ -46,18 +49,23 @@ class MixSpeakers(object):
 			mix = self.mixes[index]
 			try:
 				#     details of path       #
-				x = np.load(os.path.join(self.root, mix))
-				vad_x = compute_vad_mask(x[0], self.vad_threshold)
+				x = np.load(os.path.join(self.root, mix), allow_pickle=True)
+				vad_x = compute_vad_mask(x[0], self.vad_threshold, complex_=not self.train)
 
 				#     details of label      #
-				label = x[1:]
+				if self.train:
+					label = x[1:]
 
-				#     trans to t.Tensor     #
-				mix_x = t.from_numpy(x[0])
-				vad_x = t.from_numpy(vad_x)
-				label = t.from_numpy(label)	# [C, T, num_bins]
-				label = label.permute(1, 0, 2)	# [T, C, num_bins]
-				return [mix_x, vad_x, label]
+					#     trans to t.Tensor     #
+					mix_x = t.from_numpy(x[0])
+					vad_x = t.from_numpy(vad_x)
+					label = t.from_numpy(label)	# [C, T, num_bins]
+					label = label.permute(1, 0, 2)	# [T, C, num_bins]
+					return [mix_x, vad_x, label]
+				else:
+					label = x[1]	# [C, nsamples]
+					return [x[0], vad_x, label]	# x[0] is complex [T, num_bins]
+
 			except:
 				new_index = random.randint(0, len(self) - 1)
 				return self[new_index]
@@ -111,6 +119,10 @@ class DataLoader(object):
 		self.batch_size = batch_size
 		if min_scale not in ['subset', 'batch']:
 			raise ValueError("No such scale for dataloading!")
+		self.train = True
+		if path.split('/')[-1] == 'ts':
+			self.train = False
+			assert batch_size == 1
 
 		self.mixes = [MixSpeakers(path.format(num=c), vad_threshold=vad_threshold) for c in speaker_nums]
 		self.indices = []
@@ -125,6 +137,9 @@ class DataLoader(object):
 
 	def __iter__(self):
 		for b, index in self.indices:
-			mixes, vads, labels = self.mixes[index][b:b + self.batch_size]
+			if self.train:
+				mixes, vads, labels = self.mixes[index][b:b + self.batch_size]
+			else:
+				mixes, vads, labels = self.mixes[index][b]
 
 			yield [mixes, vads], labels

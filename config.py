@@ -14,13 +14,14 @@ class DefaultConfig(object):
 	load_model_path = None
 	checkpoint = './' + model + '_checkpoint'
 	model_kwargs = {
-		"num_bins":129,
+		"num_bins":257,
 		"hidden_size":600,
 		"bidirectional":True,
 		"num_layers":2,
 		"rnn":"lstm",
 		"act_func":"sigmoid"
 	}
+
 	# train args
 	alpha = 1.
 	beta = 1.
@@ -29,7 +30,12 @@ class DefaultConfig(object):
 	# dataset path ...
 	train_data_path = '../data/{num}speakers/tr'  # 训练集存放路径
 	cv_data_path = '../data/{num}speakers/cv'
-	test_data_path = '../processed_data/test_identification'  # 测试集存放路径
+	test_data_path = '../data/{num}speakers/ts'  # 测试集存放路径
+
+	# data preprocess args...
+	window = 'blackman'
+	window_size = 512
+	window_shift = 128
 
 	# train args
 	speaker_nums = [2, 3, 4]

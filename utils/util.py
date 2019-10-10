@@ -168,6 +168,15 @@ def CreateLabelOnce(data, wav_path, data_type, save_path, window_size, window_sh
 	wavs = [read_wav(data + "s" + str(i + 1) + "/" + wav_name) for i in range(C)]
 	new_name = None
 
+	#  Save features...names' parse problem!  #
+	#    or just process wav in dataloader?   #
+	new_dir = str(C) + "speakers/" + data_type + "/"
+	try:
+		os.makedirs(save_path + "/" + new_dir)
+	except BaseException:
+		pass
+	new_name = wav_name[:-3] + "npy"
+
 	# Here maybe need check dim whether [C, N] #
 	#         have done it in read_wav         #
 
@@ -181,22 +190,18 @@ def CreateLabelOnce(data, wav_path, data_type, save_path, window_size, window_sh
 
 	# Here use scipy.signal.stft
 	mix_stft = _stft(mix_wav)
-	stfts = [_stft(wav_signal) for wav_signal in wavs]
 
-	# Mask Computation eg IBM, IRM, PSM(mainly focused)...
-	# go for dinner! --09.19 16:25
+	if data_type == 'ts':
+		res = np.array([mix_stft, wavs])
+	else:
+		stfts = [_stft(wav_signal) for wav_signal in wavs]
+		# Mask Computation eg IBM, IRM, PSM(mainly focused)...
+		# go for dinner! --09.19 16:25
 
-	inputs_abs, inputs_angle, labels = ComputeMasks(mix_stft, stfts)
+		inputs_abs, inputs_angle, labels = ComputeMasks(mix_stft, stfts)
 
-	#  Save features...names' parse problem!  #
-	#    or just process wav in dataloader?   #
-	new_dir = str(C) + "speakers/" + data_type + "/"
-	try:
-		os.makedirs(save_path + "/" + new_dir)
-	except BaseException:
-		pass
-	new_name = wav_name[:-3] + "npy"
-	res = np.stack([inputs_abs] + labels, axis=0)
+		res = np.stack([inputs_abs] + labels, axis=0)
+	
 	np.save(save_path + "/" + new_dir + "/" + new_name, res)
 
 	return
@@ -221,5 +226,17 @@ def CreateLabelsAll(speaker_nums, data_path, save_path, window_size, window_shif
 				for line in info_lines:
 					CreateLabelOnce(data_path, line, data_type, save_path, window_size, window_shift, spl)
 
-def ComputeSDRfromMask(data, vad, mask, spk):
-	pass
+def RebuildWavFromMask(data, mask, window, window_size, window_shift, spl=8000):
+	'''
+	data: [T, num_bins]	<- complex
+	mask: [T, num_bins]
+	'''
+	mix_abs = np.abs(data)
+	mix_angles = np.angle(data)
+
+	c_spk = mix_abs * mask
+	i = complex('1j')
+	rebuild = c_spk * np.cos(mix_angles) + i * c_spks * sin(mix_angles)
+
+	_, rebuild_wav = signal.istft(rebuild, fs=spl, window=window, nperseg=window_size, noverlap=window_size-window_shift, nfft=window_size, time_axis=-2, freq_axis=-1)
+	return rebuild_wav

@@ -151,7 +151,9 @@ def stft(signal, fft_size=1024, fft_shift=256, window=signal.blackman, padding=T
 	return rfft(np.einsum(mapping, signal_seg, window),
 				axis=0 + 1)
 
-def compute_vad_mask(spec, threshold_db, apply_exp=True):
+def compute_vad_mask(spec, threshold_db, apply_exp=True, complex_=False):
+	if complex_:
+		spec = np.abs(spec)
 	if apply_exp:
 		spec = np.exp(spec)
 	spec_db = 20 * np.log10(spec)
