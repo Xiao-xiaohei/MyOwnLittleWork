@@ -236,7 +236,7 @@ def RebuildWavFromMask(data, mask, window, window_size, window_shift, spl=8000):
 
 	c_spk = mix_abs * mask
 	i = complex('1j')
-	rebuild = c_spk * np.cos(mix_angles) + i * c_spks * sin(mix_angles)
+	rebuild = c_spk * np.cos(mix_angles) + i * c_spk * np.sin(mix_angles)
 
 	_, rebuild_wav = signal.istft(rebuild, fs=spl, window=window, nperseg=window_size, noverlap=window_size-window_shift, nfft=window_size, time_axis=-2, freq_axis=-1)
 	return rebuild_wav

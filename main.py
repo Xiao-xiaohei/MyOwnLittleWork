@@ -156,10 +156,10 @@ class RSHNetTrainer(Trainer):
 		ans = {}
 		# now no need of vad...
 		raw_data = datas[0]	# complex [T, num_bins]
-		data = np.abs(raw_data)
+		data = t.from_numpy(np.abs(raw_data)).to(self.opt.device, dtype=t.float32)
 		vad_mask = datas[1]
 
-		C = label.shape[0]
+		C = len(label)
 
 		M = t.ones(data.shape)	# [T, num_bins]
 		M = M.to(self.opt.device, dtype=t.float32)
@@ -176,7 +176,7 @@ class RSHNetTrainer(Trainer):
 			tmp_m, flag = self.model(inputs)	# tmp_m [1, T, num_bins], flag [1, ] or []
 
 			tmp_m = t.squeeze(tmp_m)
-			rebuild_wav = RebuildWavFromMask(raw_data, tmp_m.cpu().numpy(), window_size=self.opt.window_size, window=self.opt.window, window_shift=self.opt.window_shift)
+			rebuild_wav = RebuildWavFromMask(raw_data, tmp_m.cpu().detach().numpy(), window_size=self.opt.window_size, window=self.opt.window, window_shift=self.opt.window_shift)
 
 			SDR = -100
 			# directly compute SDR each pair greedily!... if it works :)
@@ -205,7 +205,11 @@ def train(**kwargs):
 	trainer = RSHNetTrainer(opt)
 	trainer.run()
 
-
+def test(**kwargs):
+	opt._parse(kwargs)
+	
+	trainer = RSHNetTrainer(opt)
+	trainer.test()
 
 def help():
 	print("""
