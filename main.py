@@ -199,6 +199,8 @@ class RSHNetTrainer(Trainer):
 		if compute_SDR:
 			ans['SDR'] = mean(SDRs)
 
+		return ans
+
 def train(**kwargs):
 	opt._parse(kwargs)
 	

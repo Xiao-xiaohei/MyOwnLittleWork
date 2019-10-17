@@ -118,6 +118,7 @@ class Trainer(object):
 
 		self.model.eval()
 
+		Accs = []
 		for ii, (data, label) in tqdm(enumerate(ts_dataloader)):
 			'''
 			if isinstance(data, list):
@@ -129,3 +130,9 @@ class Trainer(object):
 			# target = label.to(self.opt.device, dtype=t.float32)
 
 			ans = self.compute_evaluation(inputs, label, self.opt.evaluations)	# ans eg dic{'Acc':True/False, 'SDR':xxx, ...}
+			if ans['Acc']:
+				Accs.append(1)
+			else:
+				Accs.append(0)
+
+		print("Acc: ", sum(Accs)/len(Accs))
