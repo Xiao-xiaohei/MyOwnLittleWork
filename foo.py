@@ -5,10 +5,12 @@ import numpy as np
 
 from torch.nn.utils.rnn import pack_sequence, pad_packed_sequence, pack_padded_sequence, pad_sequence
 from utils import util, process
-from models import RSHNet
+from models import RSHNet, ConvTasNet
 from itertools import permutations
 from main import RSHNetTrainer
 from config import opt
+from tqdm import tqdm
+import time
 
 from data import MixSpeakers, get_bs
 
@@ -153,5 +155,9 @@ def test_bs():
 	batch_size = 16
 	print(get_bs(l, batch_size, 2))
 
+def test_sh():
+	for i in tqdm(range(1000)):
+		time.sleep(1)
+
 if __name__ == '__main__':
-	test_bs()
+	print("..")

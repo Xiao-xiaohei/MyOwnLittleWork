@@ -7,7 +7,7 @@ from torch.nn.utils.rnn import pad_packed_sequence, pack_padded_sequence, pad_se
 from config import opt
 from utils.visualize import Visualizer
 from utils.Trainer import Trainer
-from utils.util import RebuildWavFromMask, ComputeSDR
+from utils.util import RebuildWavFromMask
 
 from data import MixSpeakers, DataLoader
 from itertools import permutations

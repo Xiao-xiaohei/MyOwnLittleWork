@@ -167,11 +167,11 @@ class ConvTasNet(nn.Module):
     def __init__(self,
                  L=20,	# kernel size of Encoder
                  N=256,	# input channel of Separation Step
-                 X=8,
-                 R=4,
+                 X=8,   # nums of block
+                 R=4,   # nums of Blocks
                  B=256,
                  H=512,
-                 P=3,
+                 P=3,   # kernel size
                  norm="cLN",
                  num_spks=2,
                  non_linear="relu",
