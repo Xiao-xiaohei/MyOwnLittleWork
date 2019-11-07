@@ -20,7 +20,7 @@ class MixSpeakers(object):
 		tmp_dir = os.listdir(path)
 		self.train = train
 		self.C = len(tmp_dir) - 2
-		self.mixes = os.listdir(os.path.join(path, mix))
+		self.mixes = os.listdir(path + '/mix')
 		try:
 			self.mixes.remove('.DS_Store')
 		except ValueError:
@@ -42,14 +42,14 @@ class MixSpeakers(object):
 			return t.stack(datas, dim=0)	# [B, C + 1, N=datalength]
 		else:
 			wav_name = self.mixes[index]
-			mix_path = os.path.join(self.path + '/' + mix, wav_name)
+			mix_path = os.path.join(self.path + '/mix', wav_name)
 			label_paths = [os.path.join(self.path + '/{}s'.format(i + 1), wav_name) for i in range(self.C)]
 			mix = read_wav(mix_path)	# [1, N]
 			if len(mix) < self.datalength:
-				return self[random.randint(0, len(self - 1))]
+				return self[random.randint(0, len(self) - 1)]
 			labels = [read_wav(label_path) for label_path in label_paths]
 			data = np.stack([mix] + labels, axis=0)
-			return t.from_numpy(data[:, :datalength])	# [C + 1, N=datalength]
+			return t.from_numpy(data[:, :self.datalength])	# [C + 1, N=datalength]
 
 def get_bs(l, batch_size, index, drop_last=False):
 	ans = [(s, index) for s in range(0, l, batch_size)]
@@ -69,18 +69,18 @@ class DataLoader(object):
 		self.batch_size = batch_size
 		if min_scale not in ['subset', 'batch']:
 			raise ValueError("No such scale for dataloading!")
-		train = True
+		self.train = True
 		if path.split('/')[-1] == 'ts':
-			train = False
+			self.train = False
 			assert batch_size == 1
 
-		self.mixes = [MixSpeakers(path.format(num=c), samplerate, duration, train) for c in speaker_nums]
+		self.mixes = [MixSpeakers(path.format(num=c), samplerate, duration, self.train) for c in speaker_nums]
 		self.indices = []
 		for ii, mix in enumerate(self.mixes):
 			self.indices += get_bs(len(mix), batch_size, ii, drop_last)
 
 		if min_scale == 'batch':
-			random.shuffle(self.indeces)
+			random.shuffle(self.indices)
 
 	def __len__(self):
 		return len(self.indices)
