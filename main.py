@@ -142,6 +142,20 @@ class RSHNetTrainer(Trainer):
 		'''
 		return t.norm((ob_m - ref_m) * loss_m, p='fro', dim=[-2, -1])
 
+	def sisnr_loss(self, ob_s, ref_s, normalize=True):
+		def vec_l2norm(x):
+			return np.linalg.norm(x, 2)
+		if normalize:
+			n_ob_s = ob_s - np.mean(ob_s)
+			n_ref_s = ref_s - np.mean(ref_s)
+			tar = np.inner(n_ob_s, n_ref_s) * n_ref_s / vec_l2norm(n_ref_s) ** 2
+			noi = n_ob_s - tar
+		else:
+			tar = np.inner(ob_s, ref_s) * ref_s / vec_l2norm(ref_s) ** 2
+			noi = ob_s - tar
+		return 20 * np.log10(vec_l2norm(tar)/vec_l2norm(noi))
+
+
 	def compute_evaluation(self, datas, label, types):
 		'''
 			datas:
